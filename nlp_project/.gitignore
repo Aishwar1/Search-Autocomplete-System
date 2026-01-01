@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Model training artifacts
+checkpoint/
+model/final_model/
+model/*.safetensors
+model/*.pt
+model/*.pth
+
+# Metrics & logs
+metrics.json
+*.log
+
+# OS
+.DS_Store

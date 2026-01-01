@@ -1,0 +1,124 @@
+/* ---------- Base Layout ---------- */
+body {
+  font-family: Arial, sans-serif;
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h3, h4 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+/* ---------- Two Column Layout ---------- */
+.main-container {
+  display: flex;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.left-panel {
+  flex: 1;
+}
+
+.right-panel {
+  flex: 1;
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+/* ---------- Search Input ---------- */
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 18px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #4285f4;
+}
+
+/* ---------- Autocomplete Results ---------- */
+ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+li {
+  padding: 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li:hover {
+  background-color: #f1f1f1;
+}
+
+/* ---------- Metrics Chart ---------- */
+canvas {
+  margin-top: 10px;
+}
+
+/* =================================================
+   Prediction Pipeline (RIGHT PANEL)
+   ================================================= */
+
+/* Container */
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Step box */
+.pipeline-step {
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  border-left: 4px solid #ccc;
+}
+
+/* Active step (SUBTLE, not blue-heavy) */
+.pipeline-step.active {
+  border-left-color: #666;
+  background-color: #f0f0f0;
+}
+
+/* Title + description */
+.step-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.step-desc {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Arrows */
+.pipeline-arrow {
+  text-align: center;
+  font-size: 16px;
+  color: #777;
+}

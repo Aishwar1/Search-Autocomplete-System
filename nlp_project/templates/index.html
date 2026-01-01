@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Search Autocomplete (LLM)</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+  <h2>Search Autocomplete System (NLP + Transformer)</h2>
+
+  <div class="main-container">
+
+    <!-- LEFT SIDE -->
+    <div class="left-panel">
+
+      <!-- Search -->
+      <input id="search" placeholder="Type like Google..." />
+
+      <!-- Results -->
+      <ul id="results"></ul>
+
+      <!-- Training Graph -->
+      <h4>Training Parameters</h4>
+      <canvas id="metricsChart" width="250" height="120"></canvas>
+
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="right-panel">
+
+      <h3>How Prediction is Made</h3>
+
+      <div class="pipeline">
+
+        <div class="pipeline-step active" id="flow-query">
+          <span class="step-title">User Query</span>
+          <span class="step-desc">—</span>
+        </div>
+
+        <div class="pipeline-arrow">↓</div>
+
+        <div class="pipeline-step">
+          <span class="step-title">Tokenizer (BPE)</span>
+          <span class="step-desc">Subword tokenization</span>
+        </div>
+
+        <div class="pipeline-arrow">↓</div>
+
+        <div class="pipeline-step" id="flow-tokens">
+          <span class="step-title">Token IDs → Embeddings</span>
+          <span class="step-desc">0 tokens</span>
+        </div>
+
+        <div class="pipeline-arrow">↓</div>
+
+        <div class="pipeline-step">
+          <span class="step-title">Transformer</span>
+          <span class="step-desc">Self-Attention layers</span>
+        </div>
+
+        <div class="pipeline-arrow">↓</div>
+
+        <div class="pipeline-step" id="flow-output">
+          <span class="step-title">Top-K Predictions</span>
+          <span class="step-desc">—</span>
+        </div>
+
+      </div>
+
+
+  </div>
+
+  <script src="/static/script.js"></script>
+
+</body>
+</html>

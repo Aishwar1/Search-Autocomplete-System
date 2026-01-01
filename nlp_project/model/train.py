@@ -16,7 +16,7 @@ from transformers import (
 set_seed(42)
 
 # -----------------------------
-# 1. Load search-style corpus from text file
+# 1. Load corpus from text file
 # -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(BASE_DIR, "data", "queries.txt")
@@ -27,19 +27,17 @@ with open(data_path, "r", encoding="utf-8") as f:
 dataset = Dataset.from_dict({"text": texts})
 
 # -----------------------------
-# 2. Tokenizer (FAST – REQUIRED)
+# 2. Tokenizer
 # -----------------------------
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-tokenizer.pad_token = tokenizer.eos_token
+tokenizer.pad_token = tokenizer.eos_token  # REQUIRED for GPT2
 
 def tokenize(batch):
-    tokens = tokenizer(
+    return tokenizer(
         batch["text"],
         truncation=True,
-        padding=False
+        max_length=32
     )
-    tokens["labels"] = tokens["input_ids"].copy()
-    return tokens
 
 dataset = dataset.map(
     tokenize,
@@ -60,14 +58,15 @@ training_args = TrainingArguments(
     overwrite_output_dir=True,
     num_train_epochs=5,
     per_device_train_batch_size=2,
-    save_steps=5,
+    logging_steps=1,          # 🔥 KEY FIX (dense loss curve)
+    save_steps=100,
     save_total_limit=2,
-    logging_steps=1,
-    report_to="none"
+    report_to="none",
+    fp16=False                # Windows-safe
 )
 
 # -----------------------------
-# 5. Data collator
+# 5. Data collator (handles padding + labels)
 # -----------------------------
 data_collator = DataCollatorForLanguageModeling(
     tokenizer=tokenizer,
@@ -89,24 +88,29 @@ trainer.train()
 # -----------------------------
 # 7. Save metrics
 # -----------------------------
-metrics_path = os.path.join(BASE_DIR, "metrics.json")
+loss_curve = [
+    log["loss"]
+    for log in trainer.state.log_history
+    if "loss" in log and isinstance(log["loss"], float)
+]
 
 metrics = {
     "epochs": training_args.num_train_epochs,
     "batch_size": training_args.per_device_train_batch_size,
     "learning_rate": training_args.learning_rate,
-    "log_history": trainer.state.log_history
+    "loss_curve": loss_curve
 }
 
-with open(metrics_path, "w") as f:
+with open(os.path.join(BASE_DIR, "metrics.json"), "w") as f:
     json.dump(metrics, f, indent=2)
 
 # -----------------------------
-# 8. Save FINAL model + tokenizer
+# 8. Save final model
 # -----------------------------
 FINAL_MODEL_PATH = os.path.join(BASE_DIR, "final_model")
-
 model.save_pretrained(FINAL_MODEL_PATH)
 tokenizer.save_pretrained(FINAL_MODEL_PATH)
 
-print("✅ Training complete. Model saved to model/final_model/")
+print("✅ Training complete.")
+print(f"📉 Logged {len(loss_curve)} loss points")
+print("📦 Model saved to model/final_model/")

@@ -1,29 +1,26 @@
 const input = document.getElementById("search");
 const results = document.getElementById("results");
 
-// Flow elements (RIGHT PANEL)
 const flowQuery = document.getElementById("flow-query");
 const flowTokens = document.getElementById("flow-tokens");
 const flowOutput = document.getElementById("flow-output");
 
-// -----------------------------
-// Autocomplete + Live Flow
-// -----------------------------
-let debounceTimer;
+// ==============================
+// Autocomplete + Explainability
+// ==============================
+let debounce;
 
 input.addEventListener("input", () => {
-  clearTimeout(debounceTimer);
+  clearTimeout(debounce);
 
-  debounceTimer = setTimeout(async () => {
+  debounce = setTimeout(async () => {
     const query = input.value.trim();
-
-    // ---- LIVE FLOW UPDATE ----
-    flowQuery.innerHTML = `User Query<br><small>${query || "—"}</small>`;
-    flowTokens.innerHTML = `Token IDs → Embeddings<br><small>${query ? query.split(" ").length : 0} tokens</small>`;
-    flowOutput.innerHTML = `Top-K Predictions<br><small>—</small>`;
 
     if (query.length < 3) {
       results.innerHTML = "";
+      flowQuery.querySelector(".step-desc").innerText = "—";
+      flowTokens.querySelector(".step-desc").innerText = "0 tokens";
+      flowOutput.querySelector(".step-desc").innerText = "—";
       return;
     }
 
@@ -35,55 +32,42 @@ input.addEventListener("input", () => {
 
     const data = await res.json();
 
-    // Autocomplete results
+    // ---------- Pipeline ----------
+    flowQuery.querySelector(".step-desc").innerText = query;
+
+    // Clean GPT-2 tokens (remove Ġ)
+    flowTokens.querySelector(".step-desc").innerHTML =
+      data.tokens
+        .map((t, i) => {
+          const clean = t.replace("Ġ", " ");
+          return i >= data.tokens.length - 2
+            ? `<span class="highlight">${clean}</span>`
+            : clean;
+        })
+        .join("");
+
+    flowOutput.querySelector(".step-desc").innerText =
+      `${data.suggestions.length} predictions`;
+
+    // ---------- Results ----------
     results.innerHTML = "";
+
     data.suggestions.forEach(s => {
+      const percent = (s.confidence * 100).toFixed(1);
+
       const li = document.createElement("li");
-      li.textContent = s;
+      li.innerHTML = `
+        <div class="suggestion-row">
+          <span>${s.text}</span>
+          <span class="confidence-label">${percent}%</span>
+        </div>
+        <div class="bar">
+          <div class="fill" style="width:${percent}%"></div>
+        </div>
+      `;
+
       results.appendChild(li);
     });
 
-    // Update final step
-    flowOutput.innerHTML =
-      `Top-K Predictions<br><small>${data.suggestions.length} suggestions</small>`;
-
   }, 300);
 });
-
-// -----------------------------
-// Training Metrics Visualization
-// -----------------------------
-fetch("/metrics")
-  .then(res => res.json())
-  .then(data => {
-    const ctx = document.getElementById("metricsChart").getContext("2d");
-
-    new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Epochs", "Batch Size", "Learning Rate"],
-        datasets: [{
-          data: [data.epochs, data.batch_size, data.learning_rate],
-          backgroundColor: ["#4CAF50", "#2196F3", "#FFC107"]
-        }]
-      },
-      options: {
-      responsive: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        x: {
-          ticks: {
-            autoSkip: false,
-            maxRotation: 0,
-            minRotation: 0
-          }
-        },
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-    });
-  });

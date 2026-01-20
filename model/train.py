@@ -48,7 +48,13 @@ dataset = dataset.map(
 # -----------------------------
 # 3. Model
 # -----------------------------
-model = GPT2LMHeadModel.from_pretrained("gpt2")
+model = None
+
+def load_model():
+    global model
+    if model is None:
+        model = GPT2LMHeadModel.from_pretrained("...")
+    return model
 
 # -----------------------------
 # 4. Training arguments

@@ -4,4 +4,7 @@ torch
 transformers
 datasets
 matplotlib
+<<<<<<< HEAD
 accelerate>=0.26.0
+=======
+>>>>>>> d09f05457f90b7b98ac90cb7cd376aeb7124b462

@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from model.inference import autocomplete
+from model.train import load_model
 import json
 import os
 
@@ -16,6 +17,7 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 def predict():
+    model = load_model()
     query = request.json.get("query", "")
     return jsonify(autocomplete(query))
 

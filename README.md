@@ -4,6 +4,10 @@ This project implements a **real-time search autocomplete system** that predicts
 The primary focus is on **backend system design**, **NLP-based sequence modeling**, and **production-style integration**, rather than isolated model experimentation.
 
 ---
+<img width="2687" height="1257" alt="image" src="https://github.com/user-attachments/assets/c05f7ef6-5e65-4928-a444-95ce5f6bc3b8" />
+<img width="1354" height="616" alt="image" src="https://github.com/user-attachments/assets/78de39ea-edac-48c6-ae1c-f9554c64754b" />
+<img width="4092" height="1816" alt="image" src="https://github.com/user-attachments/assets/d315c7f5-dee5-4753-841a-46543ecd3af6" />
+
 
 ## 🚀 Features
 

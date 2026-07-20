@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   Metrics Dashboard — Training Loss, Perplexity, Architecture
-══════════════════════════════════════════════════════════════════════════ */
+/* Metrics Dashboard — Training Loss, Perplexity, Architecture */
 
 let _metLossChart = null;
 let _metPplChart = null;
@@ -21,10 +19,10 @@ function renderMetricsCards(data) {
   const lossCurve = data.loss_curve || [];
   const finalLoss = lossCurve.length ? lossCurve[lossCurve.length - 1] : null;
 
-  setText('met-final-loss', finalLoss !== null ? finalLoss.toFixed(4) : '—');
-  setText('met-epochs', data.epochs ?? '—');
-  setText('met-batch', data.batch_size ?? '—');
-  setText('met-lr', data.learning_rate !== undefined ? data.learning_rate.toExponential(1) : '—');
+  _metSetText('met-final-loss', finalLoss !== null ? finalLoss.toFixed(4) : '—');
+  _metSetText('met-epochs', data.epochs ?? '—');
+  _metSetText('met-batch', data.batch_size ?? '—');
+  _metSetText('met-lr', data.learning_rate !== undefined ? data.learning_rate.toExponential(1) : '—');
 }
 
 function renderLossChart(data) {
@@ -41,15 +39,15 @@ function renderLossChart(data) {
       datasets: [{
         label: data.demo_mode ? 'Loss (demo)' : 'Training Loss',
         data: curve,
-        borderColor: '#4f8ef7',
-        backgroundColor: 'rgba(79,142,247,0.1)',
-        borderWidth: 2.5,
+        borderColor: '#5a9ae8',
+        backgroundColor: 'rgba(90,154,232,0.07)',
+        borderWidth: 1.5,
         pointRadius: curve.length > 30 ? 0 : 3,
         fill: true,
-        tension: 0.35
+        tension: 0.3
       }]
     },
-    options: chartOptions('Training Step', 'Cross-Entropy Loss')
+    options: metChartOptions('Training Step', 'Cross-Entropy Loss')
   });
 }
 
@@ -69,42 +67,42 @@ function renderPerplexityChart(data) {
       datasets: [{
         label: data.demo_mode ? 'Perplexity (demo)' : 'Perplexity',
         data: ppl,
-        borderColor: '#34d399',
-        backgroundColor: 'rgba(52,211,153,0.1)',
-        borderWidth: 2.5,
+        borderColor: '#52d18a',
+        backgroundColor: 'rgba(82,209,138,0.07)',
+        borderWidth: 1.5,
         pointRadius: ppl.length > 30 ? 0 : 3,
         fill: true,
-        tension: 0.35
+        tension: 0.3
       }]
     },
-    options: chartOptions('Training Step', 'Perplexity (exp(loss))')
+    options: metChartOptions('Training Step', 'Perplexity')
   });
 }
 
-function chartOptions(xLabel, yLabel) {
+function metChartOptions(xLabel, yLabel) {
   return {
     animation: false,
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { labels: { color: '#94a3b8', font: { size: 11 } } }
+      legend: { labels: { color: '#777', font: { size: 11 } } }
     },
     scales: {
       x: {
-        title: { display: true, text: xLabel, color: '#475569', font: { size: 10 } },
-        ticks: { color: '#475569', font: { size: 9 } },
-        grid: { color: '#1e2d45' }
+        title: { display: true, text: xLabel, color: '#444', font: { size: 10 } },
+        ticks: { color: '#444', font: { size: 9 } },
+        grid: { color: '#1a1a1a' }
       },
       y: {
-        title: { display: true, text: yLabel, color: '#475569', font: { size: 10 } },
-        ticks: { color: '#475569', font: { size: 9 } },
-        grid: { color: '#1e2d45' }
+        title: { display: true, text: yLabel, color: '#444', font: { size: 10 } },
+        ticks: { color: '#444', font: { size: 9 } },
+        grid: { color: '#1a1a1a' }
       }
     }
   };
 }
 
-function setText(id, val) {
+function _metSetText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }

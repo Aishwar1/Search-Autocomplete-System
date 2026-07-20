@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   Attention Map Visualization — Canvas Heatmap (Viridis colormap)
-══════════════════════════════════════════════════════════════════════════ */
+/* Attention Map Visualization — Canvas Heatmap */
 
 let _attnData = null;
 let _attnHead = 'avg';
@@ -36,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function runAttention(query, layer) {
   const loading = document.getElementById('attn-loading');
+  loading.textContent = 'Extracting attention weights...';
   loading.classList.remove('hidden');
 
   try {
@@ -49,9 +48,8 @@ async function runAttention(query, layer) {
     rerenderAttention();
     renderAllHeadsMini(_attnData, layer);
   } catch (e) {
-    loading.classList.add('hidden');
+    loading.textContent = 'Error: ' + e.message;
     loading.classList.remove('hidden');
-    loading.textContent = '⚠ ' + e.message;
     console.error('Attention error:', e);
   }
 }
@@ -92,14 +90,14 @@ function drawAttentionHeatmap(canvas, matrix, tokens) {
 
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#131929';
+  ctx.fillStyle = '#0c0c0c';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw heatmap cells
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       const val = matrix[i] ? matrix[i][j] || 0 : 0;
-      ctx.fillStyle = viridisColor(val);
+      ctx.fillStyle = attnColor(val);
       ctx.fillRect(
         labelPad + j * cellSize,
         labelPad + i * cellSize,
@@ -107,10 +105,9 @@ function drawAttentionHeatmap(canvas, matrix, tokens) {
         cellSize - 1
       );
 
-      // Value text for small grids
       if (n <= 8 && cellSize >= 40) {
-        ctx.fillStyle = val > 0.3 ? '#000' : '#fff';
-        ctx.font = `${Math.min(10, cellSize * 0.3)}px Consolas`;
+        ctx.fillStyle = val > 0.4 ? '#000' : '#ccc';
+        ctx.font = `${Math.min(10, cellSize * 0.28)}px Consolas`;
         ctx.textAlign = 'center';
         ctx.fillText(
           val.toFixed(2),
@@ -122,12 +119,12 @@ function drawAttentionHeatmap(canvas, matrix, tokens) {
   }
 
   // Token labels — X axis (top)
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#888';
   ctx.font = `${Math.min(11, cellSize * 0.35)}px Segoe UI`;
   ctx.textAlign = 'right';
   tokens.forEach((tok, j) => {
     ctx.save();
-    ctx.translate(labelPad + j * cellSize + cellSize / 2, labelPad - 6);
+    ctx.translate(labelPad + j * cellSize + cellSize / 2, labelPad - 5);
     ctx.rotate(-Math.PI / 4);
     ctx.fillText(tok.slice(0, 8), 0, 0);
     ctx.restore();
@@ -138,26 +135,26 @@ function drawAttentionHeatmap(canvas, matrix, tokens) {
   tokens.forEach((tok, i) => {
     ctx.fillText(
       tok.slice(0, 10),
-      labelPad - 6,
+      labelPad - 5,
       labelPad + i * cellSize + cellSize / 2 + 4
     );
   });
 
   // Colorbar
-  drawColorbar(ctx, canvas.width - 20, labelPad, 16, n * cellSize);
+  drawColorbar(ctx, canvas.width - 18, labelPad, 14, n * cellSize);
 }
 
 function drawColorbar(ctx, x, y, w, h) {
   for (let i = 0; i < h; i++) {
     const t = 1 - i / h;
-    ctx.fillStyle = viridisColor(t);
+    ctx.fillStyle = attnColor(t);
     ctx.fillRect(x, y + i, w, 1);
   }
-  ctx.strokeStyle = '#263347';
+  ctx.strokeStyle = '#2a2a2a';
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, w, h);
 
-  ctx.fillStyle = '#94a3b8';
+  ctx.fillStyle = '#888';
   ctx.font = '9px Consolas';
   ctx.textAlign = 'left';
   ctx.fillText('1.0', x + w + 2, y + 8);
@@ -180,21 +177,21 @@ function renderAllHeadsMini(data, layer) {
 
     const c = document.createElement('canvas');
     const n = (data.tokens || []).length;
-    const cs = Math.min(30, Math.floor(140 / Math.max(n, 1)));
+    const cs = Math.min(28, Math.floor(130 / Math.max(n, 1)));
     c.width = n * cs;
     c.height = n * cs;
     c.style.width = c.width + 'px';
     c.style.height = c.height + 'px';
 
     const ctx = c.getContext('2d');
-    ctx.fillStyle = '#0b0f1a';
+    ctx.fillStyle = '#0c0c0c';
     ctx.fillRect(0, 0, c.width, c.height);
 
     if (matrix) {
       for (let row = 0; row < n; row++) {
         for (let col = 0; col < n; col++) {
           const val = matrix[row]?.[col] || 0;
-          ctx.fillStyle = viridisColor(val);
+          ctx.fillStyle = attnColor(val);
           ctx.fillRect(col * cs, row * cs, cs, cs);
         }
       }
@@ -210,16 +207,12 @@ function renderAllHeadsMini(data, layer) {
   });
 }
 
-function viridisColor(t) {
+// Grayscale heatmap — brightest white = max attention, dark = low
+function attnColor(t) {
   t = Math.max(0, Math.min(1, t));
-  // Viridis lookup
-  const r = [68,72,67,56,45,37,30,43,81,132,186,253];
-  const g = [1,40,90,125,155,184,211,229,243,253,222,231];
-  const b = [84,115,140,140,130,121,102,88,73,37,30,37];
-  const i = Math.min(10, Math.floor(t * 11));
-  const f = t * 11 - i;
-  const ri = Math.round(r[i] + (r[i+1]-r[i])*f);
-  const gi = Math.round(g[i] + (g[i+1]-g[i])*f);
-  const bi = Math.round(b[i] + (b[i+1]-b[i])*f);
-  return `rgb(${ri},${gi},${bi})`;
+  // Use a simple blue-to-white ramp that looks clean on black
+  const r = Math.round(20 + t * 200);
+  const g = Math.round(30 + t * 160);
+  const b = Math.round(50 + t * 200);
+  return `rgb(${r},${g},${b})`;
 }

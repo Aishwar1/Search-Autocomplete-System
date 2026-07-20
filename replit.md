@@ -73,6 +73,8 @@ python model/train.py
 
 ## User Preferences
 
-- Dark research theme (TensorBoard-style)
+- Pure black theme — no gradients, no glows, no rounded corners (border-radius: 0 everywhere)
+- No emoji icons anywhere in the UI — plain text labels only
+- Minimal, human-written aesthetic: flat boxes, sharp edges, muted color palette
 - All visualizations should work without the fine-tuned model (base GPT-2 used as fallback)
 - Keep the existing Flask + Vanilla JS stack — no frontend framework migration

@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   GBDT Visualization — D3.js Decision Tree + Feature Importance Charts
-══════════════════════════════════════════════════════════════════════════ */
+/* GBDT Visualization — D3.js Decision Tree + Feature Importance Charts */
 
 let _gbdtImportanceChart = null;
 let _gbdtBoostChart = null;
@@ -61,7 +59,6 @@ function renderGBDTTree(tree) {
 
   const g = svg.append('g').attr('transform', 'translate(20,20)');
 
-  // Convert tree to d3 hierarchy
   const root = d3.hierarchy(tree, d => {
     if (d.type === 'split') return [d.left, d.right].filter(Boolean);
     return null;
@@ -86,48 +83,46 @@ function renderGBDTTree(tree) {
     .attr('class', d => 'tree-node ' + (d.data.type || 'leaf'))
     .attr('transform', d => `translate(${d.x},${d.y})`);
 
-  // Rectangles
   nodeG.append('rect')
     .attr('x', -38).attr('y', -18)
     .attr('width', 76).attr('height', 36);
 
-  // Text: feature and threshold for splits; value for leaves
   nodeG.each(function(d) {
     const el = d3.select(this);
     if (d.data.type === 'split') {
       el.append('text')
         .attr('y', -5).attr('text-anchor', 'middle')
-        .attr('font-size', 8).attr('fill', '#4f8ef7')
+        .attr('font-size', 8).attr('fill', '#5a9ae8')
         .text(d.data.feature?.slice(0, 12));
       el.append('text')
-        .attr('y', 7).attr('text-anchor', 'middle')
-        .attr('font-size', 8).attr('fill', '#94a3b8')
-        .text(`≤ ${d.data.threshold}`);
+        .attr('y', 6).attr('text-anchor', 'middle')
+        .attr('font-size', 8).attr('fill', '#888')
+        .text(`<= ${d.data.threshold}`);
       el.append('text')
-        .attr('y', 16).attr('text-anchor', 'middle')
-        .attr('font-size', 7).attr('fill', '#475569')
+        .attr('y', 15).attr('text-anchor', 'middle')
+        .attr('font-size', 7).attr('fill', '#555')
         .text(`n=${d.data.samples}`);
     } else {
       const val = d.data.value || 0;
       el.append('text')
         .attr('y', -4).attr('text-anchor', 'middle')
-        .attr('font-size', 9).attr('fill', '#34d399')
+        .attr('font-size', 9).attr('fill', '#52d18a')
         .text('Leaf');
       el.append('text')
         .attr('y', 8).attr('text-anchor', 'middle')
-        .attr('font-size', 8).attr('fill', '#94a3b8')
+        .attr('font-size', 8).attr('fill', '#888')
         .text(val.toFixed(4));
     }
   });
 
-  // Edge labels (True/False)
+  // Edge labels
   g.append('g').selectAll('text')
     .data(root.links())
     .join('text')
-    .attr('x', d => (d.source.x + d.target.x) / 2 + (d.target === d.source.children?.[0] ? -12 : 12))
+    .attr('x', d => (d.source.x + d.target.x) / 2 + (d.target === d.source.children?.[0] ? -10 : 10))
     .attr('y', d => (d.source.y + d.target.y) / 2)
     .attr('font-size', 8)
-    .attr('fill', '#475569')
+    .attr('fill', '#444')
     .attr('text-anchor', 'middle')
     .text(d => d.target === d.source.children?.[0] ? 'T' : 'F');
 }
@@ -141,11 +136,12 @@ function renderImportanceChart(globalImportance) {
   _gbdtImportanceChart = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: top.map(f => f.feature.replace('_', ' ')),
+      labels: top.map(f => f.feature.replace(/_/g, ' ')),
       datasets: [{
         data: top.map(f => f.importance),
-        backgroundColor: top.map((_, i) => `hsl(${200 + i * 20}, 70%, 60%)`),
-        borderRadius: 4
+        backgroundColor: top.map(() => '#5a9ae866'),
+        borderColor: top.map(() => '#5a9ae8'),
+        borderWidth: 1
       }]
     },
     options: {
@@ -155,15 +151,11 @@ function renderImportanceChart(globalImportance) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ' ' + ctx.raw.toFixed(4)
-          }
-        }
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw.toFixed(4) } }
       },
       scales: {
-        x: { ticks: { color: '#475569', font: { size: 9 } }, grid: { color: '#1e2d45' } },
-        y: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } }
+        x: { ticks: { color: '#444', font: { size: 9 } }, grid: { color: '#1a1a1a' } },
+        y: { ticks: { color: '#888', font: { size: 9 } }, grid: { display: false } }
       }
     }
   });
@@ -178,26 +170,25 @@ function renderBoostingCurve(steps) {
     data: {
       labels: steps.map(s => s.step),
       datasets: [{
-        label: 'Deviance (log-loss)',
+        label: 'Deviance',
         data: steps.map(s => s.loss),
-        borderColor: '#a78bfa',
-        backgroundColor: 'rgba(167,139,250,0.12)',
-        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4
+        borderColor: '#9b7de8',
+        backgroundColor: 'rgba(155,125,232,0.07)',
+        borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.35
       }]
     },
     options: {
       animation: false,
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 10 } } }
-      },
+      plugins: { legend: { labels: { color: '#777', font: { size: 10 } } } },
       scales: {
         x: {
-          title: { display: true, text: 'Boosting Step', color: '#475569', font: { size: 9 } },
-          ticks: { color: '#475569', font: { size: 9 } }, grid: { color: '#1e2d45' }
+          title: { display: true, text: 'Boosting Step', color: '#444', font: { size: 9 } },
+          ticks: { color: '#444', font: { size: 9 } },
+          grid: { color: '#1a1a1a' }
         },
-        y: { ticks: { color: '#475569', font: { size: 9 } }, grid: { color: '#1e2d45' } }
+        y: { ticks: { color: '#444', font: { size: 9 } }, grid: { color: '#1a1a1a' } }
       }
     }
   });

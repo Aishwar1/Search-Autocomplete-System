@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   3D Word Embeddings — Three.js Interactive Point Cloud
-══════════════════════════════════════════════════════════════════════════ */
+/* 3D Word Embeddings — Three.js Interactive Point Cloud */
 
 let _embedScene, _embedCamera, _embedRenderer, _embedAnimId;
 let _embedPoints = [];
@@ -13,34 +11,30 @@ function initEmbeddings3D() {
   const W = container.clientWidth || 640;
   const H = 480;
 
-  // Scene
   _embedScene = new THREE.Scene();
-  _embedScene.background = new THREE.Color(0x0e1726);
+  _embedScene.background = new THREE.Color(0x0c0c0c);
 
-  // Camera
   _embedCamera = new THREE.PerspectiveCamera(60, W / H, 0.01, 100);
   _embedCamera.position.set(2.5, 1.5, 2.5);
   _embedCamera.lookAt(0, 0, 0);
 
-  // Renderer
-  _embedRenderer = new THREE.WebGLRenderer({ antialias: true });
+  _embedRenderer = new THREE.WebGLRenderer({ antialias: false });
   _embedRenderer.setSize(W, H);
-  _embedRenderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(_embedRenderer.domElement);
 
   // Grid
-  const grid = new THREE.GridHelper(4, 20, 0x1e2d45, 0x1e2d45);
+  const grid = new THREE.GridHelper(4, 20, 0x222222, 0x1a1a1a);
   _embedScene.add(grid);
 
   // Axes
-  addAxis(_embedScene);
+  addEmbedAxes(_embedScene);
 
-  // Ambient light
-  _embedScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  _embedScene.add(new THREE.AmbientLight(0xffffff, 0.8));
 
   // Mouse orbit
   let isDragging = false, prevMouse = { x: 0, y: 0 };
   let spherical = { theta: 0.8, phi: 1.0, r: 4 };
+  let autoRotate = true;
 
   function updateCamera() {
     _embedCamera.position.x = spherical.r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
@@ -52,6 +46,7 @@ function initEmbeddings3D() {
 
   _embedRenderer.domElement.addEventListener('mousedown', e => {
     isDragging = true;
+    autoRotate = false;
     prevMouse = { x: e.clientX, y: e.clientY };
   });
   window.addEventListener('mouseup', () => { isDragging = false; });
@@ -66,16 +61,13 @@ function initEmbeddings3D() {
   _embedRenderer.domElement.addEventListener('wheel', e => {
     spherical.r = Math.max(1.5, Math.min(10, spherical.r + e.deltaY * 0.01));
     updateCamera();
-  });
-
-  // Auto-rotate (slow)
-  let autoRotate = true;
-  _embedRenderer.domElement.addEventListener('mousedown', () => { autoRotate = false; });
+    e.preventDefault();
+  }, { passive: false });
 
   function animate() {
     _embedAnimId = requestAnimationFrame(animate);
     if (autoRotate) {
-      spherical.theta += 0.004;
+      spherical.theta += 0.003;
       updateCamera();
     }
     _embedRenderer.render(_embedScene, _embedCamera);
@@ -92,7 +84,9 @@ function initEmbeddings3D() {
     );
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, _embedCamera);
-    const intersects = raycaster.intersectObjects(_embedScene.children, true);
+    // Only intersect sphere meshes (not lines/sprites)
+    const meshes = _embedPoints.filter(o => o instanceof THREE.Mesh);
+    const intersects = raycaster.intersectObjects(meshes, false);
     if (intersects.length > 0) {
       const obj = intersects[0].object;
       if (obj.userData && obj.userData.word) {
@@ -101,7 +95,6 @@ function initEmbeddings3D() {
     }
   });
 
-  // Resize
   window.addEventListener('resize', () => {
     const W2 = container.clientWidth;
     _embedCamera.aspect = W2 / H;
@@ -132,19 +125,15 @@ async function loadEmbeddings() {
 function renderEmbedPoints(data) {
   if (!_embedScene || !data.points) return;
 
-  // Clear old points
   _embedPoints.forEach(obj => _embedScene.remove(obj));
   _embedPoints = [];
 
   data.points.forEach(pt => {
-    const color = new THREE.Color(pt.color || '#4f8ef7');
+    const color = new THREE.Color(pt.color || '#5a9ae8');
 
     // Sphere
-    const geo = new THREE.SphereGeometry(0.04, 12, 12);
-    const mat = new THREE.MeshStandardMaterial({
-      color, emissive: color, emissiveIntensity: 0.3,
-      metalness: 0.2, roughness: 0.6
-    });
+    const geo = new THREE.SphereGeometry(0.05, 8, 8);
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0.0 });
     const sphere = new THREE.Mesh(geo, mat);
     sphere.position.set(pt.x * 1.8, pt.y * 1.8, pt.z * 1.8);
     sphere.userData = pt;
@@ -153,7 +142,7 @@ function renderEmbedPoints(data) {
 
     // Label sprite
     const sprite = makeTextSprite(pt.word, color);
-    sprite.position.set(pt.x * 1.8, pt.y * 1.8 + 0.12, pt.z * 1.8);
+    sprite.position.set(pt.x * 1.8, pt.y * 1.8 + 0.13, pt.z * 1.8);
     sprite.userData = pt;
     _embedScene.add(sprite);
     _embedPoints.push(sprite);
@@ -170,7 +159,7 @@ function renderEmbedPoints(data) {
         new THREE.Vector3(nearPt.x * 1.8, nearPt.y * 1.8, nearPt.z * 1.8)
       ]);
       const mat = new THREE.LineBasicMaterial({
-        color: new THREE.Color(pt.color), transparent: true, opacity: 0.15
+        color: new THREE.Color(pt.color), transparent: true, opacity: 0.12
       });
       const line = new THREE.Line(geo, mat);
       _embedScene.add(line);
@@ -183,12 +172,11 @@ function makeTextSprite(text, color) {
   const canvas = document.createElement('canvas');
   canvas.width = 256; canvas.height = 64;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'transparent';
   ctx.clearRect(0, 0, 256, 64);
-  ctx.font = 'bold 28px Segoe UI';
+  ctx.font = 'bold 26px Segoe UI';
   ctx.fillStyle = '#' + color.getHexString();
   ctx.textAlign = 'center';
-  ctx.fillText(text, 128, 40);
+  ctx.fillText(text, 128, 42);
 
   const tex = new THREE.CanvasTexture(canvas);
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
@@ -197,31 +185,31 @@ function makeTextSprite(text, color) {
   return sprite;
 }
 
-function addAxis(scene) {
+function addEmbedAxes(scene) {
   const axisLen = 1.8;
   const axes = [
-    { dir: [1,0,0], color: '#f87171', label: 'PC1' },
-    { dir: [0,1,0], color: '#34d399', label: 'PC2' },
-    { dir: [0,0,1], color: '#4f8ef7', label: 'PC3' }
+    { dir: [1,0,0], color: '#e05555', label: 'PC1' },
+    { dir: [0,1,0], color: '#52d18a', label: 'PC2' },
+    { dir: [0,0,1], color: '#5a9ae8', label: 'PC3' }
   ];
   axes.forEach(ax => {
     const geo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0,0,0),
       new THREE.Vector3(...ax.dir.map(v => v * axisLen))
     ]);
-    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(ax.color), transparent: true, opacity: 0.4 });
+    const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(ax.color), transparent: true, opacity: 0.35 });
     scene.add(new THREE.Line(geo, mat));
   });
 }
 
 function updateEmbedStats(data) {
   const ev = data.explained_variance || [];
-  setText('embed-pc1', ev[0] !== undefined ? (ev[0] * 100).toFixed(1) + '%' : '—');
-  setText('embed-pc2', ev[1] !== undefined ? (ev[1] * 100).toFixed(1) + '%' : '—');
-  setText('embed-pc3', ev[2] !== undefined ? (ev[2] * 100).toFixed(1) + '%' : '—');
-  setText('embed-total-var', data.total_variance_explained !== undefined
+  _embedSetText('embed-pc1', ev[0] !== undefined ? (ev[0] * 100).toFixed(1) + '%' : '—');
+  _embedSetText('embed-pc2', ev[1] !== undefined ? (ev[1] * 100).toFixed(1) + '%' : '—');
+  _embedSetText('embed-pc3', ev[2] !== undefined ? (ev[2] * 100).toFixed(1) + '%' : '—');
+  _embedSetText('embed-total-var', data.total_variance_explained !== undefined
     ? (data.total_variance_explained * 100).toFixed(1) + '%' : '—');
-  setText('embed-clusters', data.n_clusters ?? '—');
+  _embedSetText('embed-clusters', data.n_clusters ?? '—');
 }
 
 function renderEmbedLegend(data) {
@@ -237,7 +225,7 @@ function renderEmbedLegend(data) {
     div.className = 'legend-item';
     div.innerHTML = `
       <div class="legend-dot" style="background:${c.color}"></div>
-      <span>${c.label || `Cluster ${c}`}</span>
+      <span>${c.label || `Cluster`}</span>
     `;
     el.appendChild(div);
   });
@@ -247,15 +235,15 @@ function showWordInfo(pt) {
   const el = document.getElementById('embed-nearest');
   el.innerHTML = `
     <div class="traverse-label">Selected: <strong style="color:${pt.color}">${pt.word}</strong></div>
-    <div style="font-size:11px;margin-top:6px;color:var(--text-sec)">
+    <div style="font-size:11px;margin-top:6px;color:#888;font-family:Consolas,monospace">
       Cluster: ${pt.cluster_label || pt.cluster}<br>
-      Position: (${pt.x}, ${pt.y}, ${pt.z})<br>
+      PCA: (${pt.x?.toFixed(2)}, ${pt.y?.toFixed(2)}, ${pt.z?.toFixed(2)})<br>
       ${pt.nearest ? 'Nearest: ' + pt.nearest.join(', ') : ''}
     </div>
   `;
 }
 
-function setText(id, val) {
+function _embedSetText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }

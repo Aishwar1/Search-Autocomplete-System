@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   Gradient Descent — Three.js 3D Loss Surface + Animated Ball
-══════════════════════════════════════════════════════════════════════════ */
+/* Gradient Descent — Three.js 3D Loss Surface + Animated Ball */
 
 let _gradScene, _gradCamera, _gradRenderer, _gradAnimId;
 let _gradData = null;
@@ -9,6 +7,19 @@ let _gradPlaying = false;
 let _gradBall = null;
 let _gradPath = [];
 let _gradLossChart = null;
+let _gradInterval;
+
+// Data-to-scene coordinate mapping (set when surface is loaded)
+let _gradW1Min = -2, _gradW1Max = 2;  // default fallback
+let _gradW2Min = -1, _gradW2Max = 3;  // default fallback — actual backend range
+
+function dataToScene(w1, w2, loss) {
+  // Map data ranges to scene [-2, 2] for x and z
+  const x = ((w1 - _gradW1Min) / (_gradW1Max - _gradW1Min)) * 4 - 2;
+  const z = ((w2 - _gradW2Min) / (_gradW2Max - _gradW2Min)) * 4 - 2;
+  const y = Math.min(loss * 0.4, 3);
+  return { x, y, z };
+}
 
 function initGradientViz() {
   if (typeof THREE === 'undefined') return;
@@ -18,24 +29,23 @@ function initGradientViz() {
   const H = 500;
 
   _gradScene = new THREE.Scene();
-  _gradScene.background = new THREE.Color(0x0b0f1a);
+  _gradScene.background = new THREE.Color(0x000000);
 
   _gradCamera = new THREE.PerspectiveCamera(55, W / H, 0.01, 200);
   _gradCamera.position.set(5, 6, 8);
   _gradCamera.lookAt(0, 0, 0);
 
-  _gradRenderer = new THREE.WebGLRenderer({ antialias: true });
+  _gradRenderer = new THREE.WebGLRenderer({ antialias: false });
   _gradRenderer.setSize(W, H);
-  _gradRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(_gradRenderer.domElement);
 
   // Lighting
-  _gradScene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  _gradScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.7);
   dir.position.set(5, 10, 5);
   _gradScene.add(dir);
 
-  // Orbit controls (manual)
+  // Manual orbit
   let isDrag = false, prevMouse = { x: 0, y: 0 };
   let sph = { theta: 0.7, phi: 0.9, r: 10 };
 
@@ -47,20 +57,23 @@ function initGradientViz() {
   }
   updateCam();
 
-  _gradRenderer.domElement.addEventListener('mousedown', e => { isDrag = true; prevMouse = { x: e.clientX, y: e.clientY }; });
+  _gradRenderer.domElement.addEventListener('mousedown', e => {
+    isDrag = true; prevMouse = { x: e.clientX, y: e.clientY };
+  });
   window.addEventListener('mouseup', () => { isDrag = false; });
   window.addEventListener('mousemove', e => {
     if (!isDrag) return;
     sph.theta -= (e.clientX - prevMouse.x) * 0.009;
     sph.phi   -= (e.clientY - prevMouse.y) * 0.009;
-    sph.phi = Math.max(0.2, Math.min(Math.PI * 0.45, sph.phi));
+    sph.phi = Math.max(0.15, Math.min(Math.PI * 0.45, sph.phi));
     prevMouse = { x: e.clientX, y: e.clientY };
     updateCam();
   });
   _gradRenderer.domElement.addEventListener('wheel', e => {
     sph.r = Math.max(4, Math.min(20, sph.r + e.deltaY * 0.02));
     updateCam();
-  });
+    e.preventDefault();
+  }, { passive: false });
 
   function animate() {
     _gradAnimId = requestAnimationFrame(animate);
@@ -68,7 +81,6 @@ function initGradientViz() {
   }
   animate();
 
-  // Resize
   window.addEventListener('resize', () => {
     const W2 = container.clientWidth;
     _gradCamera.aspect = W2 / H;
@@ -76,7 +88,6 @@ function initGradientViz() {
     _gradRenderer.setSize(W2, H);
   });
 
-  // Controls
   document.getElementById('grad-play-btn').addEventListener('click', toggleGradPlay);
   document.getElementById('grad-reset-btn').addEventListener('click', resetGrad);
 }
@@ -85,6 +96,13 @@ async function loadGradientSurface() {
   try {
     const res = await fetch('/api/gradient');
     _gradData = await res.json();
+
+    // Capture actual data ranges from the API so coordinate transforms are consistent
+    const w1Arr = _gradData.w1 || [];
+    const w2Arr = _gradData.w2 || [];
+    if (w1Arr.length) { _gradW1Min = w1Arr[0]; _gradW1Max = w1Arr[w1Arr.length - 1]; }
+    if (w2Arr.length) { _gradW2Min = w2Arr[0]; _gradW2Max = w2Arr[w2Arr.length - 1]; }
+
     buildGradSurface(_gradData);
     buildGradPath(_gradData.gradient_path || []);
     buildGradLossChart(_gradData.gradient_path || []);
@@ -105,15 +123,10 @@ function buildGradSurface(data) {
 
   if (!N || !M) return;
 
-  // Build geometry
   const vertices = [];
   const colors   = [];
   const indices  = [];
 
-  const scaleX = 4 / (N - 1);
-  const scaleZ = 4 / (M - 1);
-
-  // Find min/max for color mapping
   let lMin = Infinity, lMax = -Infinity;
   surface.forEach(row => row.forEach(v => {
     lMin = Math.min(lMin, v);
@@ -122,16 +135,16 @@ function buildGradSurface(data) {
 
   for (let j = 0; j < M; j++) {
     for (let i = 0; i < N; i++) {
-      const x = (i / (N - 1)) * 4 - 2;
-      const z = (j / (M - 1)) * 4 - 2;
+      const wv1 = w1[i] !== undefined ? w1[i] : ((i / (N - 1)) * (_gradW1Max - _gradW1Min) + _gradW1Min);
+      const wv2 = w2[j] !== undefined ? w2[j] : ((j / (M - 1)) * (_gradW2Max - _gradW2Min) + _gradW2Min);
       const loss = surface[j] ? (surface[j][i] || 0) : 0;
-      const y = Math.min(loss * 0.4, 3);
+      const { x, y, z } = dataToScene(wv1, wv2, loss);
 
       vertices.push(x, y, z);
 
-      // Viridis color
+      // Color: dark cool for low loss, brighter warm for high
       const t = (loss - lMin) / (lMax - lMin + 1e-10);
-      const rgb = viridisRGB(t);
+      const rgb = gradViridisRGB(t);
       colors.push(rgb[0], rgb[1], rgb[2]);
     }
   }
@@ -154,29 +167,32 @@ function buildGradSurface(data) {
 
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true, side: THREE.DoubleSide,
-    roughness: 0.8, metalness: 0.1
+    roughness: 0.9, metalness: 0.0
   });
 
   const mesh = new THREE.Mesh(geo, mat);
   _gradScene.add(mesh);
 
-  // Wireframe overlay
-  const wMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x1e2d45, opacity: 0.3, transparent: true });
+  // Wireframe overlay (very subtle)
+  const wMat = new THREE.MeshBasicMaterial({
+    wireframe: true, color: 0x1a1a1a, opacity: 0.2, transparent: true
+  });
   _gradScene.add(new THREE.Mesh(geo, wMat));
 
-  // Minimum marker
-  const minGeo = new THREE.ConeGeometry(0.12, 0.4, 12);
-  const minMat = new THREE.MeshStandardMaterial({ color: 0x34d399, emissive: 0x34d399, emissiveIntensity: 0.5 });
+  // Minimum marker — placed at the actual Rosenbrock minimum (w1=1, w2=1)
+  const minScene = dataToScene(1.0, 1.0, 0.0);
+  const minGeo = new THREE.ConeGeometry(0.1, 0.35, 8);
+  const minMat = new THREE.MeshStandardMaterial({ color: 0x52d18a });
   const minMarker = new THREE.Mesh(minGeo, minMat);
-  minMarker.position.set(0, 0.25, 0);
+  minMarker.position.set(minScene.x, minScene.y + 0.18, minScene.z);
   _gradScene.add(minMarker);
 
-  // Coordinate axes
-  const axesMat = (c) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.5 });
+  // Axis lines
+  const axesMat = (c) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.4 });
   [
-    { pts: [[-2,0,0],[2,0,0]], c: 0xf87171 },
-    { pts: [[0,0,0],[0,3,0]], c: 0x34d399 },
-    { pts: [[0,0,-2],[0,0,2]], c: 0x4f8ef7 }
+    { pts: [[-2,0,0],[2,0,0]], c: 0xe05555 },
+    { pts: [[0,0,0],[0,3,0]], c: 0x52d18a },
+    { pts: [[0,0,-2],[0,0,2]], c: 0x5a9ae8 }
   ].forEach(ax => {
     const geo2 = new THREE.BufferGeometry().setFromPoints(ax.pts.map(p => new THREE.Vector3(...p)));
     _gradScene.add(new THREE.Line(geo2, axesMat(ax.c)));
@@ -187,54 +203,41 @@ function buildGradPath(pathData) {
   if (!_gradScene || !pathData.length) return;
   _gradPath = pathData;
 
-  // Ball
-  const ballGeo = new THREE.SphereGeometry(0.12, 16, 16);
-  const ballMat = new THREE.MeshStandardMaterial({
-    color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: 0.6,
-    roughness: 0.3, metalness: 0.5
-  });
+  const ballGeo = new THREE.SphereGeometry(0.1, 10, 10);
+  const ballMat = new THREE.MeshStandardMaterial({ color: 0xd4a843, roughness: 0.4 });
   _gradBall = new THREE.Mesh(ballGeo, ballMat);
   _gradScene.add(_gradBall);
 
-  // Glow ring
-  const ringGeo = new THREE.TorusGeometry(0.18, 0.03, 8, 24);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.4 });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  _gradBall.add(ring);
-
-  // Set initial position
   moveBallTo(pathData[0]);
 }
 
 function moveBallTo(pt) {
   if (!_gradBall || !pt) return;
-  const x = ((pt.w1 + 2) / 4) * 4 - 2;
-  const z = ((pt.w2 - (-1)) / 4) * 4 - 2;
-  const y = Math.min(pt.loss * 0.4 + 0.15, 3.15);
-  _gradBall.position.set(x, y, z);
+  // Use the same data→scene mapping as the surface mesh
+  const { x, y, z } = dataToScene(pt.w1, pt.w2, pt.loss);
+  _gradBall.position.set(x, y + 0.12, z);
 }
 
-let _gradInterval;
 function toggleGradPlay() {
   const btn = document.getElementById('grad-play-btn');
   if (_gradPlaying) {
     clearInterval(_gradInterval);
     _gradPlaying = false;
-    btn.textContent = '▶ Play Animation';
+    btn.textContent = 'Play Animation';
   } else {
     _gradPlaying = true;
-    btn.textContent = '⏸ Pause';
+    btn.textContent = 'Pause';
     _gradInterval = setInterval(() => {
       if (_gradStep >= (_gradPath.length - 1)) {
         clearInterval(_gradInterval);
         _gradPlaying = false;
-        btn.textContent = '▶ Play Animation';
+        btn.textContent = 'Play Animation';
         return;
       }
       _gradStep++;
       moveBallTo(_gradPath[_gradStep]);
       updateGradInfo(_gradStep);
-    }, 80);
+    }, 60);
   }
 }
 
@@ -242,7 +245,7 @@ function resetGrad() {
   clearInterval(_gradInterval);
   _gradPlaying = false;
   _gradStep = 0;
-  document.getElementById('grad-play-btn').textContent = '▶ Play Animation';
+  document.getElementById('grad-play-btn').textContent = 'Play Animation';
   if (_gradPath.length) moveBallTo(_gradPath[0]);
   updateGradInfo(0);
 }
@@ -267,9 +270,9 @@ function buildGradLossChart(path) {
       datasets: [{
         label: 'Loss',
         data: path.map(p => p.loss),
-        borderColor: '#fbbf24',
-        backgroundColor: 'rgba(251,191,36,0.1)',
-        borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3
+        borderColor: '#d4a843',
+        backgroundColor: 'rgba(212,168,67,0.07)',
+        borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.3
       }]
     },
     options: {
@@ -278,14 +281,14 @@ function buildGradLossChart(path) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#475569', font: { size: 9 } }, grid: { color: '#1e2d45' } },
-        y: { ticks: { color: '#475569', font: { size: 9 } }, grid: { color: '#1e2d45' } }
+        x: { ticks: { color: '#444', font: { size: 9 } }, grid: { color: '#1a1a1a' } },
+        y: { ticks: { color: '#444', font: { size: 9 } }, grid: { color: '#1a1a1a' } }
       }
     }
   });
 }
 
-function viridisRGB(t) {
+function gradViridisRGB(t) {
   t = Math.max(0, Math.min(1, t));
   const r = [68,72,67,56,45,37,30,43,81,132,186,253];
   const g = [1,40,90,125,155,184,211,229,243,253,222,231];

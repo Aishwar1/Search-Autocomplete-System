@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   Markov Chain Visualization — D3.js Force Graph + Heatmap
-══════════════════════════════════════════════════════════════════════════ */
+/* Markov Chain Visualization — D3.js Force Graph + Heatmap */
 
 let _markovN = 2;
 let _markovSimulation = null;
@@ -39,10 +37,10 @@ async function runMarkovModel(query, n) {
 }
 
 function updateMarkovStats(stats) {
-  setText('markov-vocab', stats.vocabulary_size ?? '—');
-  setText('markov-contexts', stats.unique_contexts ?? '—');
-  setText('markov-tokens', stats.total_tokens ?? '—');
-  setText('markov-corpus', stats.corpus_size ?? '—');
+  _markovSetText('markov-vocab', stats.vocabulary_size ?? '—');
+  _markovSetText('markov-contexts', stats.unique_contexts ?? '—');
+  _markovSetText('markov-tokens', stats.total_tokens ?? '—');
+  _markovSetText('markov-corpus', stats.corpus_size ?? '—');
 }
 
 function renderMarkovPredictions(preds) {
@@ -55,7 +53,7 @@ function renderMarkovPredictions(preds) {
     const row = document.createElement('div');
     row.className = 'mpred-row';
     row.innerHTML = `
-      <span class="mpred-word">${escHtml(p.word)}</span>
+      <span class="mpred-word">${_markovEsc(p.word)}</span>
       <div class="mpred-bar-track">
         <div class="mpred-bar-fill" style="width:${pct}%"></div>
       </div>
@@ -82,12 +80,11 @@ function renderMarkovHeatmap(matrixData) {
   const words = matrixData.words || [];
   const matrix = matrixData.matrix || [];
   if (!words.length || !matrix.length) {
-    container.innerHTML = '<span style="color:var(--text-muted);font-size:12px">Type a multi-word query to see transition matrix</span>';
+    container.innerHTML = '<span style="color:#555;font-size:12px">Type a multi-word query to see transition matrix</span>';
     return;
   }
 
   const table = document.createElement('table');
-  // Header row
   const headerRow = document.createElement('tr');
   headerRow.appendChild(document.createElement('th'));
   words.forEach(w => {
@@ -97,21 +94,19 @@ function renderMarkovHeatmap(matrixData) {
   });
   table.appendChild(headerRow);
 
-  // Data rows
   matrix.forEach((row, i) => {
     const tr = document.createElement('tr');
     const th = document.createElement('th');
     th.textContent = words[i];
     tr.appendChild(th);
 
-    row.forEach((val, j) => {
+    row.forEach(val => {
       const td = document.createElement('td');
       td.textContent = val.toFixed(2);
       const intensity = Math.min(1, val);
-      // Color: from dark to bright based on intensity
-      const alpha = 0.1 + intensity * 0.8;
-      td.style.background = `rgba(79,142,247,${alpha.toFixed(2)})`;
-      td.style.color = intensity > 0.5 ? '#fff' : 'var(--text-sec)';
+      const lightness = Math.round(15 + intensity * 30);
+      td.style.background = `hsl(210, 20%, ${lightness}%)`;
+      td.style.color = intensity > 0.5 ? '#e0e0e0' : '#999';
       tr.appendChild(td);
     });
     table.appendChild(tr);
@@ -134,47 +129,44 @@ function renderMarkovGraph(graphData, query) {
 
   if (!nodes.length) return;
 
-  // Arrow marker
   svg.append('defs').append('marker')
-    .attr('id', 'arrow')
+    .attr('id', 'marrow')
     .attr('viewBox', '0 -5 10 10')
-    .attr('refX', 20)
+    .attr('refX', 22)
     .attr('refY', 0)
     .attr('markerWidth', 6)
     .attr('markerHeight', 6)
     .attr('orient', 'auto')
     .append('path')
     .attr('d', 'M0,-5L10,0L0,5')
-    .attr('fill', '#475569');
+    .attr('fill', '#444');
 
   const g = svg.append('g');
 
-  // Color scale by group
-  const groupColors = ['#4f8ef7', '#34d399', '#fbbf24', '#a78bfa', '#f87171'];
+  // Node colors by group — muted palette
+  const groupColors = ['#5a9ae8', '#52d18a', '#d4a843', '#9b7de8', '#e05555'];
 
-  // Max freq for radius scaling
   const maxFreq = d3.max(nodes, n => n.frequency || 1) || 1;
   const maxWeight = d3.max(links, l => l.weight || 0.1) || 0.1;
 
-  // Link selection
   const linkSel = g.append('g').selectAll('line')
     .data(links)
     .join('line')
     .attr('class', 'm-link')
-    .attr('stroke', '#263347')
-    .attr('stroke-width', d => Math.max(1, d.weight / maxWeight * 4))
-    .attr('marker-end', 'url(#arrow)');
+    .attr('stroke', '#333')
+    .attr('stroke-width', d => Math.max(1, d.weight / maxWeight * 3))
+    .attr('marker-end', 'url(#marrow)');
 
-  // Link labels
   const linkLabels = g.append('g').selectAll('text')
     .data(links)
     .join('text')
     .attr('font-size', 9)
-    .attr('fill', '#475569')
+    .attr('fill', '#444')
     .attr('text-anchor', 'middle')
     .text(d => `${(d.weight * 100).toFixed(0)}%`);
 
-  // Node selection
+  const queryWords = new Set((graphData.query_words || []).map(w => w.toLowerCase()));
+
   const nodeSel = g.append('g').selectAll('g')
     .data(nodes)
     .join('g')
@@ -184,24 +176,22 @@ function renderMarkovGraph(graphData, query) {
       .on('drag', dragged)
       .on('end', dragEnded));
 
-  const queryWords = new Set((graphData.query_words || []).map(w => w.toLowerCase()));
-
   nodeSel.append('circle')
     .attr('r', d => {
       const freq = d.frequency || 1;
-      return Math.max(8, Math.min(28, 8 + (freq / maxFreq) * 20));
+      return Math.max(8, Math.min(26, 8 + (freq / maxFreq) * 18));
     })
     .attr('fill', d => groupColors[d.group % groupColors.length])
-    .attr('fill-opacity', d => queryWords.has(d.id) ? 1 : 0.6)
-    .attr('stroke', d => queryWords.has(d.id) ? '#fff' : 'transparent')
-    .attr('stroke-width', 2)
+    .attr('fill-opacity', d => queryWords.has(d.id) ? 0.9 : 0.5)
+    .attr('stroke', d => queryWords.has(d.id) ? '#e0e0e0' : 'transparent')
+    .attr('stroke-width', 1.5)
     .on('mouseover', function(event, d) {
       showMarkovTooltip(event, d);
       d3.select(this).attr('fill-opacity', 1);
     })
     .on('mouseout', function(event, d) {
       hideTooltip();
-      d3.select(this).attr('fill-opacity', queryWords.has(d.id) ? 1 : 0.6);
+      d3.select(this).attr('fill-opacity', queryWords.has(d.id) ? 0.9 : 0.5);
     });
 
   nodeSel.append('text')
@@ -209,16 +199,16 @@ function renderMarkovGraph(graphData, query) {
     .attr('text-anchor', 'middle')
     .attr('font-size', d => queryWords.has(d.id) ? 11 : 9)
     .attr('font-weight', d => queryWords.has(d.id) ? '700' : '400')
+    .attr('fill', '#e0e0e0')
     .text(d => d.label);
 
-  // Force simulation
   if (_markovSimulation) _markovSimulation.stop();
 
   _markovSimulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d => d.id).distance(90).strength(0.5))
     .force('charge', d3.forceManyBody().strength(-200))
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide(30))
+    .force('collision', d3.forceCollide(32))
     .on('tick', () => {
       linkSel
         .attr('x1', d => d.source.x)
@@ -233,7 +223,6 @@ function renderMarkovGraph(graphData, query) {
       nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
     });
 
-  // Zoom
   svg.call(d3.zoom()
     .scaleExtent([0.3, 3])
     .on('zoom', e => g.attr('transform', e.transform)));
@@ -255,12 +244,17 @@ function showMarkovTooltip(event, d) {
   tip.style.left = (event.pageX + 12) + 'px';
   tip.style.top  = (event.pageY - 20) + 'px';
   tip.innerHTML = `
-    <div style="font-weight:700;color:#4f8ef7">"${d.label}"</div>
+    <div style="font-weight:700">"${d.label}"</div>
     <div>Frequency: ${d.frequency}</div>
     <div>Group: ${d.group}</div>
   `;
 }
 
-function escHtml(s) {
+function _markovSetText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function _markovEsc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }

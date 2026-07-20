@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   QueryMind Research Lab — Main Controller
-══════════════════════════════════════════════════════════════════════════ */
+/* QueryMind Research Lab — Main Controller */
 
 // ── Tab Switching ────────────────────────────────────────────────────────────
 const tabBtns = document.querySelectorAll('.tab-btn');
@@ -13,8 +11,6 @@ tabBtns.forEach(btn => {
     tabPanels.forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${target}`).classList.add('active');
-
-    // Lazy-init visualizations on first switch
     onTabActivated(target);
   });
 });
@@ -62,14 +58,14 @@ function onTabActivated(tab) {
   }
 }
 
-// ── Search Engine (Main) ─────────────────────────────────────────────────────
-const mainSearch  = document.getElementById('main-search');
-const dropdown    = document.getElementById('search-dropdown');
-const spinner     = document.getElementById('search-spinner');
-const trieResults = document.getElementById('trie-results');
+// ── Search Engine ────────────────────────────────────────────────────────────
+const mainSearch    = document.getElementById('main-search');
+const dropdown      = document.getElementById('search-dropdown');
+const spinner       = document.getElementById('search-spinner');
+const trieResults   = document.getElementById('trie-results');
 const markovResults = document.getElementById('markov-results');
-const tfResults   = document.getElementById('transformer-results');
-const tokenDisplay = document.getElementById('token-display');
+const tfResults     = document.getElementById('transformer-results');
+const tokenDisplay  = document.getElementById('token-display');
 
 let searchDebounce;
 
@@ -88,20 +84,15 @@ mainSearch.addEventListener('input', () => {
 });
 
 mainSearch.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    dropdown.classList.add('hidden');
-  }
+  if (e.key === 'Escape') dropdown.classList.add('hidden');
 });
 
 document.addEventListener('click', e => {
-  if (!e.target.closest('.search-wrapper')) {
-    dropdown.classList.add('hidden');
-  }
+  if (!e.target.closest('.search-wrapper')) dropdown.classList.add('hidden');
 });
 
 async function doSearch(query) {
   const t0 = performance.now();
-
   try {
     const res = await fetch('/api/search', {
       method: 'POST',
@@ -122,34 +113,30 @@ async function doSearch(query) {
 }
 
 function renderSearchResults(query, data, elapsed) {
-  // Trie
   renderResultList(trieResults, data.trie || [], 'trie-fill', 'freq');
   document.getElementById('trie-time').textContent = `${elapsed.toFixed(0)}ms`;
 
-  // Markov
   renderResultList(markovResults, data.markov || [], 'markov-fill', 'confidence');
-  document.getElementById('markov-time').textContent = `N-gram`;
+  document.getElementById('markov-time').textContent = 'N-gram';
 
-  // Transformer
   renderResultList(tfResults, data.transformer || [], 'transformer-fill', 'confidence');
   document.getElementById('transformer-time').textContent =
     data.is_finetuned ? 'Fine-tuned' : 'Base GPT-2';
 
-  // Tokens
   renderTokens(data.tokens || []);
 }
 
 function renderResultList(ul, items, fillClass, scoreKey) {
   ul.innerHTML = '';
   if (!items.length) {
-    ul.innerHTML = '<li style="padding:10px;color:var(--text-muted);font-size:12px;">No results yet — keep typing…</li>';
+    ul.innerHTML = '<li style="padding:10px;color:#555;font-size:12px;">No results — keep typing...</li>';
     return;
   }
 
   items.forEach(item => {
-    const text   = item.text || item.query || '';
-    const score  = item[scoreKey] || item.confidence || item.frequency || 0;
-    const pct    = Math.min(100, score * 100).toFixed(1);
+    const text  = item.text || item.query || '';
+    const score = item[scoreKey] || item.confidence || item.frequency || 0;
+    const pct   = Math.min(100, score * 100).toFixed(1);
 
     const li = document.createElement('li');
     li.innerHTML = `
@@ -175,7 +162,7 @@ function renderDropdown(data) {
   const all = [
     ...(data.trie || []).slice(0, 3).map(x => ({ ...x, src: 'Trie' })),
     ...(data.markov || []).slice(0, 2).map(x => ({ ...x, src: 'Markov' })),
-    ...(data.transformer || []).slice(0, 3).map(x => ({ ...x, src: '⚡' }))
+    ...(data.transformer || []).slice(0, 3).map(x => ({ ...x, src: 'GPT-2' }))
   ];
 
   if (!all.length) { dropdown.classList.add('hidden'); return; }
@@ -185,7 +172,6 @@ function renderDropdown(data) {
     const div = document.createElement('div');
     div.className = 'dropdown-item';
     div.innerHTML = `
-      <span class="di-icon">🔍</span>
       <span class="di-text">${escHtml(text)}</span>
       <span class="di-source">${item.src}</span>
     `;
@@ -203,7 +189,7 @@ function renderDropdown(data) {
 function renderTokens(tokens) {
   tokenDisplay.innerHTML = '';
   if (!tokens.length) {
-    tokenDisplay.innerHTML = '<span class="token-placeholder">Type a query above to see BPE tokenization</span>';
+    tokenDisplay.innerHTML = '<span class="token-placeholder">Type a query above to see tokenization</span>';
     return;
   }
 
@@ -224,23 +210,23 @@ function updatePipeline(query, data) {
   document.getElementById('pipe-topk-val').textContent =
     (data.transformer || []).length + ' candidates';
 
+  const pipeIds = ['pipe-input','pipe-tokenize','pipe-embed','pipe-attn','pipe-topk','pipe-rank'];
   document.querySelectorAll('.pipe-node').forEach(n => n.classList.remove('active'));
-  ['pipe-input','pipe-tokenize','pipe-embed','pipe-attn','pipe-topk','pipe-rank']
-    .forEach((id, i) => {
-      setTimeout(() => {
-        document.querySelectorAll('.pipe-node').forEach(n => n.classList.remove('active'));
-        const el = document.getElementById(id);
-        if (el) el.classList.add('active');
-      }, i * 180);
-    });
+  pipeIds.forEach((id, i) => {
+    setTimeout(() => {
+      document.querySelectorAll('.pipe-node').forEach(n => n.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }, i * 200);
+  });
 }
 
 function clearResults() {
   [trieResults, markovResults, tfResults].forEach(ul => { ul.innerHTML = ''; });
-  tokenDisplay.innerHTML = '<span class="token-placeholder">Type a query above to see BPE tokenization</span>';
+  tokenDisplay.innerHTML = '<span class="token-placeholder">Type a query above to see tokenization</span>';
 }
 
-// ── Load header stats from Markov/Trie ───────────────────────────────────────
+// ── Header stats ─────────────────────────────────────────────────────────────
 async function loadHeaderStats() {
   try {
     const res = await fetch('/api/markov?query=how+to+learn&n=2');
@@ -261,17 +247,6 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
-
-function viridis(t) {
-  // Viridis colormap approximation
-  t = Math.max(0, Math.min(1, t));
-  const r = Math.round(68 + t * (253 - 68));
-  const g = Math.round(1 + t * (231 - 1));
-  const b = Math.round(84 - t * (84 - 37) + Math.sin(t * Math.PI) * 80);
-  return `rgb(${r},${g},${b})`;
-}
-
-window.viridisColor = viridis;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadHeaderStats();

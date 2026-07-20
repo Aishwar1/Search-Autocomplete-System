@@ -1,6 +1,4 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   User History Visualization — Timeline, WordCloud, Intent Distribution
-══════════════════════════════════════════════════════════════════════════ */
+/* User History Visualization */
 
 let _histIntentChart = null;
 let _histLengthChart = null;
@@ -22,10 +20,10 @@ async function loadHistory() {
 }
 
 function updateHistStats(data) {
-  setText('hist-total', data.total_queries ?? 0);
-  setText('hist-unique', data.unique_words ?? 0);
-  setText('hist-avg-len', data.avg_query_length ? data.avg_query_length + ' chars' : '—');
-  setText('hist-duration', data.session_duration ? formatDuration(data.session_duration) : '0s');
+  _histSetText('hist-total', data.total_queries ?? 0);
+  _histSetText('hist-unique', data.unique_words ?? 0);
+  _histSetText('hist-avg-len', data.avg_query_length ? data.avg_query_length + ' chars' : '—');
+  _histSetText('hist-duration', data.session_duration ? formatDuration(data.session_duration) : '0s');
 }
 
 function renderHistoryTimeline(queries) {
@@ -33,7 +31,7 @@ function renderHistoryTimeline(queries) {
   container.innerHTML = '';
 
   if (!queries.length) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:12px">No queries yet — use the Search Engine tab</div>';
+    container.innerHTML = '<div style="color:#555;font-size:12px;padding:10px">No queries yet — use the Search Engine tab</div>';
     return;
   }
 
@@ -41,7 +39,7 @@ function renderHistoryTimeline(queries) {
     const div = document.createElement('div');
     div.className = 'hist-item';
     div.innerHTML = `
-      <div class="hist-text">${escHtml(q.text)}</div>
+      <div class="hist-text">${_histEsc(q.text)}</div>
       <div class="hist-intent">${q.intent}</div>
       <div class="hist-time">${q.time_ago}</div>
     `;
@@ -54,22 +52,19 @@ function renderWordCloud(words) {
   el.innerHTML = '';
 
   if (!words.length) {
-    el.innerHTML = '<span style="color:var(--text-muted);font-size:11px">No words yet</span>';
+    el.innerHTML = '<span style="color:#555;font-size:11px">No words yet</span>';
     return;
   }
 
   const maxCount = Math.max(...words.map(w => w.count), 1);
-  const colors = ['#4f8ef7', '#34d399', '#fbbf24', '#a78bfa', '#f87171', '#22d3ee', '#f472b6'];
 
-  words.forEach((item, i) => {
-    const size = 11 + (item.count / maxCount) * 12;
+  words.forEach(item => {
+    const size = 11 + (item.count / maxCount) * 10;
     const span = document.createElement('span');
     span.className = 'wc-word';
     span.textContent = item.word;
     span.style.fontSize = size + 'px';
-    span.style.color = colors[i % colors.length];
-    span.style.background = colors[i % colors.length] + '22';
-    span.title = `${item.word}: ${item.count}×`;
+    span.title = `${item.word}: ${item.count}x`;
     el.appendChild(span);
   });
 }
@@ -83,7 +78,7 @@ function renderIntentChart(intents) {
 
   if (!labels.length) return;
 
-  const colors = ['#4f8ef7', '#34d399', '#fbbf24', '#a78bfa', '#f87171', '#22d3ee'];
+  const colors = ['#5a9ae8', '#52d18a', '#d4a843', '#9b7de8', '#e05555', '#4ecdc4'];
 
   _histIntentChart = new Chart(canvas, {
     type: 'doughnut',
@@ -91,9 +86,9 @@ function renderIntentChart(intents) {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: colors.slice(0, labels.length),
-        borderColor: '#0b0f1a',
-        borderWidth: 3
+        backgroundColor: colors.slice(0, labels.length).map(c => c + 'aa'),
+        borderColor: colors.slice(0, labels.length),
+        borderWidth: 1
       }]
     },
     options: {
@@ -103,7 +98,7 @@ function renderIntentChart(intents) {
       plugins: {
         legend: {
           position: 'right',
-          labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12 }
+          labels: { color: '#888', font: { size: 11 }, boxWidth: 10 }
         }
       }
     }
@@ -121,10 +116,9 @@ function renderLengthChart(hist) {
       datasets: [{
         label: 'Queries',
         data: hist.map(h => h.count),
-        backgroundColor: '#4f8ef766',
-        borderColor: '#4f8ef7',
-        borderWidth: 2,
-        borderRadius: 4
+        backgroundColor: '#5a9ae844',
+        borderColor: '#5a9ae8',
+        borderWidth: 1
       }]
     },
     options: {
@@ -133,8 +127,8 @@ function renderLengthChart(hist) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { display: false } },
-        y: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: '#1e2d45' } }
+        x: { ticks: { color: '#444', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#444', font: { size: 10 } }, grid: { color: '#1a1a1a' } }
       }
     }
   });
@@ -152,10 +146,10 @@ function renderTimingChart(timing) {
       datasets: [{
         label: 'Query',
         data: timing.map((t, i) => ({ x: t.elapsed, y: i + 1 })),
-        backgroundColor: '#22d3ee99',
-        borderColor: '#22d3ee',
-        pointRadius: 5,
-        pointHoverRadius: 7
+        backgroundColor: '#4ecdc488',
+        borderColor: '#4ecdc4',
+        pointRadius: 4,
+        pointHoverRadius: 6
       }]
     },
     options: {
@@ -175,14 +169,14 @@ function renderTimingChart(timing) {
       },
       scales: {
         x: {
-          title: { display: true, text: 'Elapsed (s)', color: '#475569', font: { size: 10 } },
-          ticks: { color: '#475569', font: { size: 9 } },
-          grid: { color: '#1e2d45' }
+          title: { display: true, text: 'Elapsed (s)', color: '#444', font: { size: 9 } },
+          ticks: { color: '#444', font: { size: 9 } },
+          grid: { color: '#1a1a1a' }
         },
         y: {
-          title: { display: true, text: 'Query #', color: '#475569', font: { size: 10 } },
-          ticks: { color: '#475569', font: { size: 9 } },
-          grid: { color: '#1e2d45' }
+          title: { display: true, text: 'Query #', color: '#444', font: { size: 9 } },
+          ticks: { color: '#444', font: { size: 9 } },
+          grid: { color: '#1a1a1a' }
         }
       }
     }
@@ -195,12 +189,12 @@ function formatDuration(seconds) {
   return (seconds / 3600).toFixed(1) + 'h';
 }
 
-function setText(id, val) {
+function _histSetText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }
 
-function escHtml(s) {
+function _histEsc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 

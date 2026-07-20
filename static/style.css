@@ -986,18 +986,109 @@ code {
 ::-webkit-scrollbar-thumb { background: var(--border-2); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
+/* ─── SINGLE-PAGE LAYOUT ──────────────────────────────────────────────────── */
+.single-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-section {
+  padding: 40px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-section.alt-bg {
+  background: var(--bg-card);
+}
+
+.section-header {
+  margin-bottom: 24px;
+}
+
+.section-title-lg {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--text-sec);
+  max-width: 800px;
+  line-height: 1.6;
+}
+
+/* ─── MARKOV SIMPLIFIED ───────────────────────────────────────────────────── */
+.markov-simple-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.markov-simple-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.markov-simple-top .ctrl-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.markov-simple-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.markov-col {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  padding: 14px;
+}
+
+/* ─── GBDT SIMPLIFIED ─────────────────────────────────────────────────────── */
+.gbdt-simple-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.gbdt-simple-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gbdt-simple-right {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  padding: 14px;
+}
+
+.gbdt-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.gbdt-input-row .ctrl-input {
+  flex: 1;
+  min-width: 180px;
+}
+
 /* ─── RESPONSIVE ──────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .results-grid { grid-template-columns: 1fr; }
-  .trie-layout, .markov-layout, .attn-layout, .lstm-layout,
-  .embed-layout, .grad-layout, .gbdt-layout, .history-layout {
-    grid-template-columns: 1fr;
-  }
-  .metrics-grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .arch-grid { grid-template-columns: repeat(2, 1fr); }
-  .metrics-charts-row { grid-template-columns: 1fr; }
+  .embed-layout, .grad-layout { grid-template-columns: 1fr; }
   .pipeline-flow { flex-wrap: wrap; }
   .header-stats { display: none; }
-  .two-col-viz { grid-template-columns: 1fr; }
-  .attn-heads-grid { grid-template-columns: repeat(2, 1fr); }
+  .markov-simple-results { grid-template-columns: 1fr; }
+  .gbdt-simple-layout { grid-template-columns: 1fr; }
+  .markov-simple-top .ctrl-input { max-width: 100%; }
 }

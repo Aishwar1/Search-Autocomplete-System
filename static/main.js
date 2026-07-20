@@ -1,59 +1,5 @@
 /* QueryMind Research Lab — Main Controller */
 
-// ── Tab Switching ────────────────────────────────────────────────────────────
-const tabBtns = document.querySelectorAll('.tab-btn');
-const tabPanels = document.querySelectorAll('.tab-panel');
-
-tabBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.tab;
-    tabBtns.forEach(b => b.classList.remove('active'));
-    tabPanels.forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(`tab-${target}`).classList.add('active');
-    onTabActivated(target);
-  });
-});
-
-function onTabActivated(tab) {
-  if (tab === 'trie' && !window._trieInited) {
-    window._trieInited = true;
-    initTrieViz();
-    runTrieSearch('how to');
-  }
-  if (tab === 'markov' && !window._markovInited) {
-    window._markovInited = true;
-    runMarkovModel('how to learn', 2);
-  }
-  if (tab === 'lstm' && !window._lstmInited) {
-    window._lstmInited = true;
-    initLSTMViz();
-    runLSTM('how to learn machine');
-  }
-  if (tab === 'embeddings' && !window._embedInited) {
-    window._embedInited = true;
-    initEmbeddings3D();
-    loadEmbeddings();
-  }
-  if (tab === 'gradient' && !window._gradInited) {
-    window._gradInited = true;
-    initGradientViz();
-    loadGradientSurface();
-  }
-  if (tab === 'gbdt' && !window._gbdtInited) {
-    window._gbdtInited = true;
-    runGBDT('how to learn python');
-  }
-  if (tab === 'history' && !window._histInited) {
-    window._histInited = true;
-    loadHistory();
-  }
-  if (tab === 'metrics' && !window._metricsInited) {
-    window._metricsInited = true;
-    loadMetrics();
-  }
-}
-
 // ── Search Engine ────────────────────────────────────────────────────────────
 const mainSearch    = document.getElementById('main-search');
 const dropdown      = document.getElementById('search-dropdown');
@@ -244,5 +190,19 @@ function escHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Init all sections on load ─────────────────────────────────────────────────
 loadHeaderStats();
+
+// Markov — run default query
+runMarkovModel('how to learn', 2);
+
+// 3D Embeddings — init viewer and load default words
+initEmbeddings3D();
+loadEmbeddings();
+
+// Gradient Descent — init viewer and load surface
+initGradientViz();
+loadGradientSurface();
+
+// Decision Trees — run default query
+runGBDT('how to learn python');

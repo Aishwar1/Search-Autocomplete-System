@@ -38,25 +38,13 @@
   </div>
 </header>
 
-<nav class="tab-nav">
-  <button class="tab-btn active" data-tab="search">Search Engine</button>
-  <button class="tab-btn" data-tab="trie">Trie Explorer</button>
-  <button class="tab-btn" data-tab="markov">Markov Chain</button>
-  <button class="tab-btn" data-tab="lstm">LSTM Internals</button>
-  <button class="tab-btn" data-tab="embeddings">3D Embeddings</button>
-  <button class="tab-btn" data-tab="gradient">Gradient Descent</button>
-  <button class="tab-btn" data-tab="gbdt">Decision Trees</button>
-  <button class="tab-btn" data-tab="history">User History</button>
-  <button class="tab-btn" data-tab="metrics">Metrics</button>
-</nav>
+<main class="single-page">
 
-<main class="tab-content">
-
-  <!-- TAB 1: SEARCH ENGINE -->
-  <div class="tab-panel active" id="tab-search">
-    <div class="panel-header">
-      <h2 class="panel-title">Search Autocomplete Engine</h2>
-      <p class="panel-desc">Three models run in parallel — Trie (O(k) lookup), Markov N-gram (probabilistic), and Transformer (deep contextual). Results are merged and re-ranked by GBDT.</p>
+  <!-- ── SECTION 1: SEARCH ENGINE ─────────────────────────────────────── -->
+  <section class="page-section" id="sec-search">
+    <div class="section-header">
+      <h2 class="section-title-lg">Search Autocomplete Engine</h2>
+      <p class="section-desc">Three models run in parallel — Trie (O(k) lookup), Markov N-gram (probabilistic), and Transformer (deep contextual). Results are merged and re-ranked by GBDT.</p>
     </div>
 
     <div class="search-hero">
@@ -146,199 +134,50 @@
         <span class="token-placeholder">Type a query above to see tokenization</span>
       </div>
     </div>
-  </div>
+  </section>
 
 
-  <!-- TAB 2: TRIE EXPLORER -->
-  <div class="tab-panel" id="tab-trie">
-    <div class="panel-header">
-      <h2 class="panel-title">Trie (Prefix Tree) Explorer</h2>
-      <p class="panel-desc">A trie stores every query character-by-character. Prefix search is <code>O(k)</code> where k is the prefix length — orders of magnitude faster than <code>O(n)</code> linear scan.</p>
+  <!-- ── SECTION 2: MARKOV CHAIN ──────────────────────────────────────── -->
+  <section class="page-section alt-bg" id="sec-markov">
+    <div class="section-header">
+      <h2 class="section-title-lg">Markov Chain Language Model</h2>
+      <p class="section-desc">Predicts the next word from the previous N−1 words using empirical transition probabilities from the training corpus.</p>
     </div>
 
-    <div class="trie-layout">
-      <div class="trie-controls">
-        <label class="ctrl-label">Prefix:</label>
-        <input id="trie-input" class="ctrl-input" placeholder="e.g. how to" value="how to">
-        <button class="btn-primary" id="trie-search-btn">Search Trie</button>
-
-        <div class="explain-callout" id="trie-explain">
-          <strong>How it works:</strong> Type a prefix above and click Search. The trie walks down the tree one character at a time — <span class="explain-highlight">h → o → w</span> — and collects all stored queries under that node. The blue highlighted path in the diagram shows exactly which nodes were visited.
-        </div>
-
-        <div class="info-card" style="margin-top:14px;">
-          <div class="info-row"><span class="info-key">Nodes visited</span><span class="info-val" id="trie-nodes-visited">—</span></div>
-          <div class="info-row"><span class="info-key">Subtree size</span><span class="info-val" id="trie-subtree">—</span></div>
-          <div class="info-row"><span class="info-key">Total nodes</span><span class="info-val" id="trie-total-nodes">—</span></div>
-          <div class="info-row"><span class="info-key">Max depth</span><span class="info-val" id="trie-max-depth">—</span></div>
-          <div class="info-row"><span class="info-key">Total queries</span><span class="info-val" id="trie-total-queries">—</span></div>
-        </div>
-
-        <div class="traversal-path" id="trie-traversal">
-          <div class="traverse-label">Traversal path:</div>
-          <div class="traverse-chars" id="trie-path-chars"></div>
-        </div>
-
-        <div class="suggestions-list-wrap">
-          <div class="traverse-label">Matched queries:</div>
-          <ul id="trie-suggestions" class="compact-list"></ul>
-        </div>
-
-        <div class="complexity-box">
-          <div class="complexity-title">Complexity</div>
-          <div class="complexity-row"><span>Search time</span><span class="complexity-val green">O(k)</span></div>
-          <div class="complexity-row"><span>Space</span><span class="complexity-val amber">O(ALPHABET x N)</span></div>
-          <div class="complexity-row"><span>Insert</span><span class="complexity-val green">O(k)</span></div>
-          <div class="complexity-row"><span>vs Linear Scan</span><span class="complexity-val red">O(n x k)</span></div>
-        </div>
-      </div>
-
-      <div class="trie-viz-area">
-        <div class="viz-title">Trie Structure (D3 Radial Tree)</div>
-        <svg id="trie-svg" width="100%" height="520"></svg>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- TAB 3: MARKOV CHAIN -->
-  <div class="tab-panel" id="tab-markov">
-    <div class="panel-header">
-      <h2 class="panel-title">Markov Chain Language Model</h2>
-      <p class="panel-desc">A Markov chain predicts the next word from the previous N-1 words. P(wn | wn-1) for bigrams. Each edge weight is the empirical transition probability from the training corpus.</p>
-    </div>
-
-    <div class="markov-layout">
-      <div class="markov-controls">
-        <label class="ctrl-label">Query:</label>
+    <div class="markov-simple-layout">
+      <div class="markov-simple-top">
         <input id="markov-input" class="ctrl-input" placeholder="e.g. how to learn" value="how to learn">
-
-        <div class="explain-callout" id="markov-explain">
-          <strong>How it works:</strong> The model looks at your <em>last word</em> (or last 2 for trigram) and counts how often each next word followed it in the training corpus. The bar chart shows those probabilities — wider bar = more likely next word.
-        </div>
-        <div id="markov-live-explain" class="explain-callout" style="display:none;border-left-color:var(--cyan)"></div>
-
         <div class="ngram-toggle">
           <button class="ngram-btn active" data-n="2">Bigram</button>
           <button class="ngram-btn" data-n="3">Trigram</button>
         </div>
         <button class="btn-primary" id="markov-run-btn">Run Model</button>
+      </div>
 
-        <div class="info-card" style="margin-top:12px;">
-          <div class="info-row"><span class="info-key">Vocabulary</span><span class="info-val" id="markov-vocab">—</span></div>
-          <div class="info-row"><span class="info-key">Contexts</span><span class="info-val" id="markov-contexts">—</span></div>
-          <div class="info-row"><span class="info-key">Total tokens</span><span class="info-val" id="markov-tokens">—</span></div>
-          <div class="info-row"><span class="info-key">Corpus size</span><span class="info-val" id="markov-corpus">—</span></div>
-        </div>
+      <div class="explain-callout" id="markov-explain">
+        <strong>How it works:</strong> The model looks at your last word (or last 2 for trigram) and counts how often each next word followed it in the training corpus. Wider bar = more likely next word.
+      </div>
+      <div id="markov-live-explain" class="explain-callout" style="display:none;border-left-color:var(--cyan)"></div>
 
-        <div style="margin-top:12px;">
-          <div class="traverse-label">Next-word predictions:</div>
+      <div class="markov-simple-results">
+        <div class="markov-col">
+          <div class="traverse-label">Next-word predictions</div>
           <div id="markov-predictions" class="markov-preds"></div>
         </div>
-
-        <div style="margin-top:12px;">
-          <div class="traverse-label">Generated completions:</div>
+        <div class="markov-col">
+          <div class="traverse-label">Generated completions</div>
           <ul id="markov-completions" class="compact-list"></ul>
         </div>
-
-        <div class="complexity-box" style="margin-top:10px;">
-          <div class="complexity-title">Model Equation</div>
-          <div class="equation">P(wn | w1...wn-1) = P(wn | wn-k...wn-1)</div>
-          <div class="equation-note">Markov Assumption: only the last k words matter</div>
-          <div class="equation" style="margin-top:6px;">P(wn | wn-1) = C(wn-1, wn) / C(wn-1)</div>
-          <div class="equation-note">Bigram MLE estimate from corpus counts</div>
-        </div>
-      </div>
-
-      <div class="markov-viz-area">
-        <div class="viz-title">State Transition Graph (D3 Force Layout)</div>
-        <svg id="markov-svg" width="100%" height="420"></svg>
-        <div class="viz-title" style="margin-top:16px;">Transition Probability Matrix</div>
-        <div id="markov-heatmap" class="markov-heatmap"></div>
       </div>
     </div>
-  </div>
+  </section>
 
 
-  <!-- TAB 5: LSTM INTERNALS -->
-  <div class="tab-panel" id="tab-lstm">
-    <div class="panel-header">
-      <h2 class="panel-title">LSTM Cell — Gate Activations</h2>
-      <p class="panel-desc">Long Short-Term Memory networks control information flow through three gates. Below are the live gate activations computed per character in your query using actual LSTM mathematics — real weights, real sigmoid/tanh, step by step.</p>
-    </div>
-
-    <div class="lstm-layout">
-      <div class="lstm-controls">
-        <label class="ctrl-label">Query:</label>
-        <input id="lstm-input" class="ctrl-input" placeholder="e.g. how to learn" value="how to learn machine">
-        <button class="btn-primary" id="lstm-run-btn">Compute Gates</button>
-
-        <div class="explain-callout" id="lstm-explain">
-          <strong>What you're seeing:</strong> Your text is fed into an LSTM <em>one character at a time</em>. At each step the cell decides what to <span style="color:var(--red)">forget</span>, what new info to <span style="color:var(--cyan)">input</span>, and what to <span style="color:var(--green)">output</span>. Use the &lt; &gt; arrows (or click the timeline) to step through each character.
-        </div>
-        <div id="lstm-loading" class="viz-loading hidden" style="text-align:left;padding:8px 0;font-size:12px;">Computing gate activations...</div>
-
-        <label class="ctrl-label" style="margin-top:8px;">Time step:</label>
-        <div id="lstm-step-nav" class="step-nav">
-          <button id="lstm-prev" class="step-btn">&lt;</button>
-          <span id="lstm-step-label" class="step-label">t = 0</span>
-          <button id="lstm-next" class="step-btn">&gt;</button>
-        </div>
-
-        <div class="gate-bars" id="lstm-gate-bars" style="margin-top:10px;">
-          <div class="gate-bar-row">
-            <span class="gate-name forget">Forget ft</span>
-            <div class="gate-track"><div class="gate-fill forget-fill" id="g-forget" style="width:50%"></div></div>
-            <span class="gate-pct" id="g-forget-val">0.50</span>
-          </div>
-          <div class="gate-bar-row">
-            <span class="gate-name input">Input it</span>
-            <div class="gate-track"><div class="gate-fill input-fill" id="g-input" style="width:30%"></div></div>
-            <span class="gate-pct" id="g-input-val">0.30</span>
-          </div>
-          <div class="gate-bar-row">
-            <span class="gate-name cell">Cell gt</span>
-            <div class="gate-track"><div class="gate-fill cell-fill" id="g-cell" style="width:60%"></div></div>
-            <span class="gate-pct" id="g-cell-val">0.60</span>
-          </div>
-          <div class="gate-bar-row">
-            <span class="gate-name output">Output ot</span>
-            <div class="gate-track"><div class="gate-fill output-fill" id="g-output" style="width:45%"></div></div>
-            <span class="gate-pct" id="g-output-val">0.45</span>
-          </div>
-          <div class="gate-bar-row">
-            <span class="gate-name hidden">||Cell||</span>
-            <div class="gate-track"><div class="gate-fill hidden-fill" id="g-cell-norm" style="width:40%"></div></div>
-            <span class="gate-pct" id="g-cell-norm-val">—</span>
-          </div>
-        </div>
-
-        <div class="complexity-box" style="margin-top:12px;">
-          <div class="complexity-title">LSTM Equations</div>
-          <div class="equation small">ft = sigmoid(Wf * [ht-1, xt] + bf)</div>
-          <div class="equation small">it = sigmoid(Wi * [ht-1, xt] + bi)</div>
-          <div class="equation small">gt = tanh(Wg * [ht-1, xt] + bg)</div>
-          <div class="equation small">ct = ft * ct-1 + it * gt</div>
-          <div class="equation small">ot = sigmoid(Wo * [ht-1, xt] + bo)</div>
-          <div class="equation small">ht = ot * tanh(ct)</div>
-        </div>
-      </div>
-
-      <div class="lstm-viz-area">
-        <div class="viz-title">LSTM Cell Architecture</div>
-        <svg id="lstm-svg" width="100%" height="340"></svg>
-        <div class="viz-title" style="margin-top:16px;">Gate Activations Over Time</div>
-        <canvas id="lstm-timeline" height="150"></canvas>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- TAB 6: 3D EMBEDDINGS -->
-  <div class="tab-panel" id="tab-embeddings">
-    <div class="panel-header">
-      <h2 class="panel-title">Word Embeddings in 3D Space</h2>
-      <p class="panel-desc">GPT-2's 768-dimensional token embeddings projected to 3D via PCA. Semantically similar words cluster together. Drag to orbit, scroll to zoom.</p>
+  <!-- ── SECTION 3: 3D EMBEDDINGS ─────────────────────────────────────── -->
+  <section class="page-section" id="sec-embeddings">
+    <div class="section-header">
+      <h2 class="section-title-lg">Word Embeddings in 3D Space</h2>
+      <p class="section-desc">GPT-2's 768-dimensional token embeddings projected to 3D via PCA. Semantically similar words cluster together. Drag to orbit, scroll to zoom.</p>
     </div>
 
     <div class="embed-layout">
@@ -348,23 +187,14 @@
         <button class="btn-primary" id="embed-load-btn">Project Embeddings</button>
 
         <div class="info-card" style="margin-top:12px;">
-          <div class="info-row"><span class="info-key">Embedding dim</span><span class="info-val">768</span></div>
           <div class="info-row"><span class="info-key">PCA variance PC1</span><span class="info-val" id="embed-pc1">—</span></div>
           <div class="info-row"><span class="info-key">PCA variance PC2</span><span class="info-val" id="embed-pc2">—</span></div>
           <div class="info-row"><span class="info-key">PCA variance PC3</span><span class="info-val" id="embed-pc3">—</span></div>
           <div class="info-row"><span class="info-key">Total explained</span><span class="info-val" id="embed-total-var">—</span></div>
-          <div class="info-row"><span class="info-key">Clusters (k-means)</span><span class="info-val" id="embed-clusters">—</span></div>
+          <div class="info-row"><span class="info-key">Clusters</span><span class="info-val" id="embed-clusters">—</span></div>
         </div>
 
         <div class="legend-area" id="embed-legend" style="margin-top:10px;"></div>
-
-        <div class="complexity-box" style="margin-top:10px;">
-          <div class="complexity-title">PCA Projection</div>
-          <div class="equation small">z = W^T (x - mu)</div>
-          <div class="equation-note">W = top-3 eigenvectors of covariance matrix</div>
-          <div class="equation small" style="margin-top:4px;">sim(u,v) = u*v / (||u|| ||v||)</div>
-          <div class="equation-note">Cosine similarity in embedding space</div>
-        </div>
 
         <div class="nearest-area" id="embed-nearest" style="margin-top:10px;">
           <div class="traverse-label">Click a word to see nearest neighbors</div>
@@ -372,18 +202,18 @@
       </div>
 
       <div class="embed-viz-area">
-        <div class="viz-title">3D Word Vector Space (Three.js — drag to orbit)</div>
-        <div id="embed-3d-container" style="width:100%;height:480px;overflow:hidden;"></div>
+        <div class="viz-title">3D Word Vector Space (drag to orbit)</div>
+        <div id="embed-3d-container" style="width:100%;height:480px;overflow:hidden;border-radius:4px;"></div>
       </div>
     </div>
-  </div>
+  </section>
 
 
-  <!-- TAB 7: GRADIENT DESCENT -->
-  <div class="tab-panel" id="tab-gradient">
-    <div class="panel-header">
-      <h2 class="panel-title">Gradient Descent on Loss Surface</h2>
-      <p class="panel-desc">Gradient descent minimizes the loss by moving in the direction of the negative gradient: theta = theta - eta * grad(L). The surface is the Rosenbrock function. Watch the trajectory converge to the global minimum at (1, 1).</p>
+  <!-- ── SECTION 4: GRADIENT DESCENT ──────────────────────────────────── -->
+  <section class="page-section alt-bg" id="sec-gradient">
+    <div class="section-header">
+      <h2 class="section-title-lg">Gradient Descent on Loss Surface</h2>
+      <p class="section-desc">Watch the optimizer move down the Rosenbrock loss surface step by step, converging to the global minimum at (1, 1).</p>
     </div>
 
     <div class="grad-layout">
@@ -392,21 +222,11 @@
         <button class="btn-secondary" id="grad-reset-btn" style="margin-top:6px;">Reset</button>
 
         <div class="info-card" style="margin-top:12px;">
-          <div class="info-row"><span class="info-key">Current step</span><span class="info-val" id="grad-step">0</span></div>
-          <div class="info-row"><span class="info-key">Current loss</span><span class="info-val" id="grad-loss">—</span></div>
+          <div class="info-row"><span class="info-key">Step</span><span class="info-val" id="grad-step">0</span></div>
+          <div class="info-row"><span class="info-key">Loss</span><span class="info-val" id="grad-loss">—</span></div>
           <div class="info-row"><span class="info-key">w1</span><span class="info-val" id="grad-w1">-1.5</span></div>
           <div class="info-row"><span class="info-key">w2</span><span class="info-val" id="grad-w2">2.5</span></div>
           <div class="info-row"><span class="info-key">Learning rate</span><span class="info-val">0.025</span></div>
-        </div>
-
-        <div class="complexity-box" style="margin-top:10px;">
-          <div class="complexity-title">Update Rule</div>
-          <div class="equation small">theta_t+1 = theta_t - eta * grad(L)</div>
-          <div class="equation-note">Vanilla SGD update</div>
-          <div class="equation small" style="margin-top:4px;">L(w1,w2) = (1-w1)^2 + 2(w2-w1^2)^2</div>
-          <div class="equation-note">Rosenbrock function</div>
-          <div class="equation small" style="margin-top:4px;">dL/dw1 = -2(1-w1) - 8w1(w2-w1^2)</div>
-          <div class="equation small">dL/dw2 = 4(w2-w1^2)</div>
         </div>
 
         <div class="viz-title" style="margin-top:16px;">Loss vs Step</div>
@@ -414,212 +234,57 @@
       </div>
 
       <div class="grad-viz-area">
-        <div class="viz-title">3D Loss Surface (Three.js — drag to orbit)</div>
-        <div id="grad-3d-container" style="width:100%;height:500px;overflow:hidden;"></div>
+        <div class="viz-title">3D Loss Surface (drag to orbit)</div>
+        <div id="grad-3d-container" style="width:100%;height:500px;overflow:hidden;border-radius:4px;"></div>
       </div>
     </div>
-  </div>
+  </section>
 
 
-  <!-- TAB 8: DECISION TREES / GBDT -->
-  <div class="tab-panel" id="tab-gbdt">
-    <div class="panel-header">
-      <h2 class="panel-title">Gradient-Boosted Decision Trees (GBDT)</h2>
-      <p class="panel-desc">GBDT builds trees sequentially, each fitting the residual of the previous: Fm(x) = Fm-1(x) + eta * hm(x). Used by Bing and Yandex for query ranking.</p>
+  <!-- ── SECTION 5: DECISION TREES ─────────────────────────────────────── -->
+  <section class="page-section" id="sec-gbdt">
+    <div class="section-header">
+      <h2 class="section-title-lg">Decision Trees (GBDT Re-ranker)</h2>
+      <p class="section-desc">50 decision trees vote on how popular your query is. The bars show which features drove the score most.</p>
     </div>
 
-    <div class="gbdt-layout">
-      <div class="gbdt-controls">
-        <label class="ctrl-label">Query to rank:</label>
-        <input id="gbdt-input" class="ctrl-input" placeholder="e.g. how to learn python" value="how to learn python">
-        <button class="btn-primary" id="gbdt-run-btn">Explain Ranking</button>
+    <div class="gbdt-simple-layout">
+      <div class="gbdt-simple-left">
+        <div class="gbdt-input-row">
+          <input id="gbdt-input" class="ctrl-input" placeholder="e.g. how to learn python" value="how to learn python">
+          <button class="btn-primary" id="gbdt-run-btn">Explain Ranking</button>
+        </div>
 
         <div class="explain-callout">
-          <strong>How it works:</strong> 16 features are extracted from your query (length, word count, keyword flags, corpus frequency). 50 decision trees each vote. The <em>Feature Contributions</em> bars below show which features drove the ranking score most — longer bar = bigger impact.
+          <strong>How it works:</strong> 16 features are extracted from your query (length, word count, keyword flags, corpus frequency). 50 decision trees each vote. Longer bar = bigger impact on the score.
         </div>
         <div id="gbdt-live-explain" class="explain-callout" style="display:none;border-left-color:var(--green)"></div>
 
-        <div class="info-card" style="margin-top:4px;">
+        <div class="info-card" style="margin-top:8px;">
           <div class="info-row"><span class="info-key">Popularity score</span><span class="info-val" id="gbdt-score">—</span></div>
-          <div class="info-row"><span class="info-key">n_estimators</span><span class="info-val">50</span></div>
-          <div class="info-row"><span class="info-key">max_depth</span><span class="info-val">3</span></div>
-          <div class="info-row"><span class="info-key">learning_rate</span><span class="info-val">0.1</span></div>
-          <div class="info-row"><span class="info-key">subsample</span><span class="info-val">0.8</span></div>
+          <div class="info-row"><span class="info-key">Trees</span><span class="info-val">50</span></div>
+          <div class="info-row"><span class="info-key">Max depth</span><span class="info-val">3</span></div>
         </div>
 
         <div style="margin-top:12px;">
-          <div class="traverse-label">Feature contributions:</div>
+          <div class="traverse-label">Feature contributions</div>
           <div id="gbdt-features" class="gbdt-features"></div>
         </div>
-
-        <div class="complexity-box" style="margin-top:10px;">
-          <div class="complexity-title">Boosting Formula</div>
-          <div class="equation small">F0(x) = argmin sum L(yi, gamma)</div>
-          <div class="equation small">rim = -[dL(yi, F(xi)) / dF(xi)]</div>
-          <div class="equation small">Fm(x) = Fm-1(x) + eta * hm(x)</div>
-          <div class="equation-note">Additive tree ensemble</div>
-        </div>
       </div>
 
-      <div class="gbdt-viz-area">
-        <div class="two-col-viz">
-          <div>
-            <div class="viz-title">Decision Tree #1 (D3)</div>
-            <svg id="gbdt-tree-svg" width="100%" height="380"></svg>
-          </div>
-          <div>
-            <div class="viz-title">Feature Importance</div>
-            <canvas id="gbdt-importance-chart" height="200"></canvas>
-            <div class="viz-title" style="margin-top:16px;">Boosting Loss Curve</div>
-            <canvas id="gbdt-boost-chart" height="160"></canvas>
-          </div>
-        </div>
+      <div class="gbdt-simple-right">
+        <div class="viz-title">Feature Importance (top 8)</div>
+        <canvas id="gbdt-importance-chart" height="260"></canvas>
       </div>
     </div>
-  </div>
-
-
-  <!-- TAB 9: USER HISTORY -->
-  <div class="tab-panel" id="tab-history">
-    <div class="panel-header">
-      <h2 class="panel-title">User Session &amp; Query History</h2>
-      <p class="panel-desc">This panel tracks your current session — the data that would feed a real personalization model. Search queries are logged from the Search Engine tab.</p>
-    </div>
-
-    <div class="history-layout">
-      <div class="history-left">
-        <div class="info-card">
-          <div class="info-row"><span class="info-key">Session queries</span><span class="info-val" id="hist-total">0</span></div>
-          <div class="info-row"><span class="info-key">Unique words</span><span class="info-val" id="hist-unique">0</span></div>
-          <div class="info-row"><span class="info-key">Avg query length</span><span class="info-val" id="hist-avg-len">—</span></div>
-          <div class="info-row"><span class="info-key">Session duration</span><span class="info-val" id="hist-duration">—</span></div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div class="traverse-label">Top keywords:</div>
-          <div id="hist-wordcloud" class="wordcloud-wrap"></div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div class="traverse-label">Intent distribution:</div>
-          <canvas id="hist-intent-chart" height="160"></canvas>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div class="traverse-label">Query length distribution:</div>
-          <canvas id="hist-length-chart" height="120"></canvas>
-        </div>
-      </div>
-
-      <div class="history-right">
-        <div class="viz-title">Recent Queries</div>
-        <div id="hist-timeline" class="hist-timeline"></div>
-
-        <div class="viz-title" style="margin-top:16px;">Query Activity Over Time</div>
-        <canvas id="hist-timing-chart" height="120"></canvas>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- TAB 10: METRICS -->
-  <div class="tab-panel" id="tab-metrics">
-    <div class="panel-header">
-      <h2 class="panel-title">Training Metrics</h2>
-      <p class="panel-desc">Training analytics. If the model has not been trained yet, demo curves are shown. Run <code>python model/train.py</code> to generate real metrics.</p>
-    </div>
-
-    <div class="metrics-grid-4">
-      <div class="metric-card">
-        <div class="metric-icon">loss</div>
-        <div class="metric-val" id="met-final-loss">—</div>
-        <div class="metric-label">Final Loss</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">epochs</div>
-        <div class="metric-val" id="met-epochs">—</div>
-        <div class="metric-label">Epochs</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">batch</div>
-        <div class="metric-val" id="met-batch">—</div>
-        <div class="metric-label">Batch Size</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">lr</div>
-        <div class="metric-val" id="met-lr">—</div>
-        <div class="metric-label">Learning Rate</div>
-      </div>
-    </div>
-
-    <div class="metrics-charts-row">
-      <div class="metrics-chart-block">
-        <div class="viz-title">Training Loss Curve</div>
-        <canvas id="met-loss-chart" height="200"></canvas>
-      </div>
-      <div class="metrics-chart-block">
-        <div class="viz-title">Perplexity (exp(loss))</div>
-        <canvas id="met-perplexity-chart" height="200"></canvas>
-      </div>
-    </div>
-
-    <div class="arch-section">
-      <div class="viz-title">GPT-2 Architecture</div>
-      <div class="arch-grid">
-        <div class="arch-card">
-          <div class="arch-icon">d_model</div>
-          <div class="arch-name">Dimension</div>
-          <div class="arch-val">768</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">layers</div>
-          <div class="arch-name">Layers</div>
-          <div class="arch-val">12</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">heads</div>
-          <div class="arch-name">Attn Heads</div>
-          <div class="arch-val">12</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">ffn</div>
-          <div class="arch-name">FFN dim</div>
-          <div class="arch-val">3072</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">vocab</div>
-          <div class="arch-name">Vocab size</div>
-          <div class="arch-val">50,257</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">params</div>
-          <div class="arch-name">Parameters</div>
-          <div class="arch-val">124M</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">ctx</div>
-          <div class="arch-name">Max context</div>
-          <div class="arch-val">1024</div>
-        </div>
-        <div class="arch-card">
-          <div class="arch-icon">obj</div>
-          <div class="arch-name">Objective</div>
-          <div class="arch-val">Causal LM</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </section>
 
 </main>
 
-<script src="/static/viz_trie.js"></script>
 <script src="/static/viz_markov.js"></script>
-<script src="/static/viz_lstm.js"></script>
 <script src="/static/viz_embeddings.js"></script>
 <script src="/static/viz_gradient.js"></script>
 <script src="/static/viz_gbdt.js"></script>
-<script src="/static/viz_history.js"></script>
-<script src="/static/viz_metrics.js"></script>
 <script src="/static/main.js"></script>
 </body>
 </html>

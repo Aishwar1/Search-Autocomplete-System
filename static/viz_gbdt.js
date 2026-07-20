@@ -1,7 +1,6 @@
-/* GBDT Visualization — D3.js Decision Tree + Feature Importance Charts */
+/* GBDT Visualization — Feature Importance + Score */
 
 let _gbdtImportanceChart = null;
-let _gbdtBoostChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('gbdt-run-btn').addEventListener('click', () => {
@@ -23,9 +22,7 @@ async function runGBDT(query) {
       score !== undefined ? (score * 100).toFixed(1) + '%' : '—';
 
     renderGBDTFeatures(data.features || []);
-    renderGBDTTree(data.tree);
     renderImportanceChart(data.global_importance || []);
-    renderBoostingCurve(data.boosting_curve || []);
     renderGBDTLiveExplain(query, data);
   } catch (e) {
     console.error('GBDT error:', e);
@@ -43,9 +40,8 @@ function renderGBDTLiveExplain(query, data) {
   if (!top2.length) { el.style.display = 'none'; return; }
 
   el.style.display = '';
-  el.innerHTML = '';   // clear previous content
+  el.innerHTML = '';
 
-  // Verdict — only numeric/static values in innerHTML
   const scorePct = (score * 100).toFixed(1);
   const verdictEl = document.createElement('strong');
   if (score >= 0.5) {
@@ -58,23 +54,19 @@ function renderGBDTLiveExplain(query, data) {
   el.appendChild(verdictEl);
   el.appendChild(document.createTextNode(` (${scorePct}% score) — top features: `));
 
-  // Feature names come from a fixed enum in gbdt.py, but escape them anyway
   top2.forEach((f, i) => {
     const span = document.createElement('span');
     span.className = 'explain-highlight';
-    span.textContent = f.feature.replace(/_/g, ' ');   // safe — textContent
+    span.textContent = f.feature.replace(/_/g, ' ');
     el.appendChild(span);
     el.appendChild(document.createTextNode(` (${(f.importance * 100).toFixed(1)}%)`));
     if (i < top2.length - 1) el.appendChild(document.createTextNode(' and '));
   });
-
-  const tail = document.createElement('span');
-  tail.innerHTML = '. The <em>Feature Contributions</em> bars below rank all 16 signals by impact on the 50-tree ensemble.';
-  el.appendChild(tail);
 }
 
 function renderGBDTFeatures(features) {
   const el = document.getElementById('gbdt-features');
+  if (!el) return;
   el.innerHTML = '';
   const maxImp = Math.max(...features.map(f => f.importance), 0.01);
 
@@ -91,87 +83,9 @@ function renderGBDTFeatures(features) {
   });
 }
 
-function renderGBDTTree(tree) {
-  if (!tree) return;
-  const svg = d3.select('#gbdt-tree-svg');
-  svg.selectAll('*').remove();
-
-  const W = svg.node().getBoundingClientRect().width || 400;
-  const H = 380;
-  svg.attr('height', H);
-
-  const g = svg.append('g').attr('transform', 'translate(20,20)');
-
-  const root = d3.hierarchy(tree, d => {
-    if (d.type === 'split') return [d.left, d.right].filter(Boolean);
-    return null;
-  });
-
-  const treeLayout = d3.tree().size([W - 40, H - 60]);
-  treeLayout(root);
-
-  // Links
-  g.append('g').selectAll('path')
-    .data(root.links())
-    .join('path')
-    .attr('class', 'tree-link')
-    .attr('d', d3.linkVertical()
-      .x(d => d.x)
-      .y(d => d.y));
-
-  // Nodes
-  const nodeG = g.append('g').selectAll('g')
-    .data(root.descendants())
-    .join('g')
-    .attr('class', d => 'tree-node ' + (d.data.type || 'leaf'))
-    .attr('transform', d => `translate(${d.x},${d.y})`);
-
-  nodeG.append('rect')
-    .attr('x', -38).attr('y', -18)
-    .attr('width', 76).attr('height', 36);
-
-  nodeG.each(function(d) {
-    const el = d3.select(this);
-    if (d.data.type === 'split') {
-      el.append('text')
-        .attr('y', -5).attr('text-anchor', 'middle')
-        .attr('font-size', 8).attr('fill', '#5a9ae8')
-        .text(d.data.feature?.slice(0, 12));
-      el.append('text')
-        .attr('y', 6).attr('text-anchor', 'middle')
-        .attr('font-size', 8).attr('fill', '#888')
-        .text(`<= ${d.data.threshold}`);
-      el.append('text')
-        .attr('y', 15).attr('text-anchor', 'middle')
-        .attr('font-size', 7).attr('fill', '#555')
-        .text(`n=${d.data.samples}`);
-    } else {
-      const val = d.data.value || 0;
-      el.append('text')
-        .attr('y', -4).attr('text-anchor', 'middle')
-        .attr('font-size', 9).attr('fill', '#52d18a')
-        .text('Leaf');
-      el.append('text')
-        .attr('y', 8).attr('text-anchor', 'middle')
-        .attr('font-size', 8).attr('fill', '#888')
-        .text(val.toFixed(4));
-    }
-  });
-
-  // Edge labels
-  g.append('g').selectAll('text')
-    .data(root.links())
-    .join('text')
-    .attr('x', d => (d.source.x + d.target.x) / 2 + (d.target === d.source.children?.[0] ? -10 : 10))
-    .attr('y', d => (d.source.y + d.target.y) / 2)
-    .attr('font-size', 8)
-    .attr('fill', '#444')
-    .attr('text-anchor', 'middle')
-    .text(d => d.target === d.source.children?.[0] ? 'T' : 'F');
-}
-
 function renderImportanceChart(globalImportance) {
   const canvas = document.getElementById('gbdt-importance-chart');
+  if (!canvas) return;
   if (_gbdtImportanceChart) { _gbdtImportanceChart.destroy(); _gbdtImportanceChart = null; }
 
   const top = globalImportance.slice(0, 8);
@@ -199,39 +113,6 @@ function renderImportanceChart(globalImportance) {
       scales: {
         x: { ticks: { color: '#444', font: { size: 9 } }, grid: { color: '#1a1a1a' } },
         y: { ticks: { color: '#888', font: { size: 9 } }, grid: { display: false } }
-      }
-    }
-  });
-}
-
-function renderBoostingCurve(steps) {
-  const canvas = document.getElementById('gbdt-boost-chart');
-  if (_gbdtBoostChart) { _gbdtBoostChart.destroy(); _gbdtBoostChart = null; }
-
-  _gbdtBoostChart = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: steps.map(s => s.step),
-      datasets: [{
-        label: 'Deviance',
-        data: steps.map(s => s.loss),
-        borderColor: '#9b7de8',
-        backgroundColor: 'rgba(155,125,232,0.07)',
-        borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.35
-      }]
-    },
-    options: {
-      animation: false,
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#777', font: { size: 10 } } } },
-      scales: {
-        x: {
-          title: { display: true, text: 'Boosting Step', color: '#444', font: { size: 9 } },
-          ticks: { color: '#444', font: { size: 9 } },
-          grid: { color: '#1a1a1a' }
-        },
-        y: { ticks: { color: '#444', font: { size: 9 } }, grid: { color: '#1a1a1a' } }
       }
     }
   });

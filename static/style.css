@@ -806,22 +806,23 @@ code {
 #grad-loss-chart { background: var(--bg-raised); }
 
 /* ─── GBDT ────────────────────────────────────────────────────────────────── */
-.gbdt-features { display: flex; flex-direction: column; gap: 4px; }
+.gbdt-features { display: flex; flex-direction: column; gap: 5px; }
 
 .feat-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
 
 .feat-name {
-  width: 120px;
-  color: var(--text-muted);
+  width: 115px;
+  color: var(--text-sec);
   font-family: var(--font-mono);
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 10px;
 }
 
-.feat-track { flex: 1; height: 4px; background: var(--border); overflow: hidden; }
-.feat-fill { height: 100%; background: var(--text-muted); transition: width 0.3s; }
-.feat-val { font-size: 11px; color: var(--text-sec); width: 40px; text-align: right; font-family: var(--font-mono); }
+.feat-track { flex: 1; height: 6px; background: var(--border); overflow: hidden; border-radius: 1px; }
+.feat-fill { height: 100%; background: var(--blue); transition: width 0.4s; }
+.feat-val { font-size: 10px; color: var(--text-sec); width: 40px; text-align: right; font-family: var(--font-mono); }
 
 .two-col-viz { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
@@ -838,6 +839,29 @@ code {
 .tree-node text { fill: var(--text-sec); font-size: 9px; }
 .tree-link { fill: none; stroke: var(--border-2); stroke-width: 1.5; }
 
+/* ─── EXPLAIN CALLOUT ─────────────────────────────────────────────────────── */
+.explain-callout {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-2);
+  border-left: 3px solid var(--blue);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.explain-callout strong { color: var(--text); }
+.explain-callout code  { font-size: 11px; }
+.explain-highlight {
+  display: inline-block;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-2);
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+}
+
 /* ─── HISTORY ─────────────────────────────────────────────────────────────── */
 .hist-timeline {
   display: flex;
@@ -846,6 +870,7 @@ code {
   max-height: 300px;
   overflow-y: auto;
   scrollbar-width: thin;
+  overflow-anchor: none;
 }
 
 .hist-item {

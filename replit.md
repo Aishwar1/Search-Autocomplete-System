@@ -1,6 +1,11 @@
 # QueryMind Research Lab
 
-A research-grade search autocomplete engine that visualizes 9 deep learning and data science concepts through an interactive dark-themed dashboard.
+A real-time search autocomplete system with 9 ML visualization modules.
+
+## Stack
+- **Backend:** Python / Flask
+- **ML:** PyTorch, Hugging Face Transformers (GPT-2), scikit-learn
+- **Frontend:** Vanilla JS, D3.js, Three.js, Chart.js
 
 ## How to Run
 
@@ -8,73 +13,54 @@ A research-grade search autocomplete engine that visualizes 9 deep learning and 
 python app.py
 ```
 
-The app runs on port 5000 by default.
+App serves on port 5000. The transformer model is lazy-loaded on first request.
 
-To train the fine-tuned GPT-2 model first (optional — base GPT-2 is used as fallback):
+### Optional: Train the Fine-Tuned Model
 ```bash
 python model/train.py
 ```
+This produces `model/final_model/`. Without it, the app falls back to base GPT-2.
 
-## Architecture
+## Tabs
+| Tab | What it shows |
+|---|---|
+| Search Engine | Live autocomplete combining Trie + Markov + GPT-2 |
+| Trie Explorer | Prefix tree visualization, O(k) lookup |
+| Markov Chain | Bigram/trigram transition graph + probability bars |
+| LSTM Internals | Character-level LSTM gate activations (real numpy math) |
+| 3D Embeddings | GPT-2 token vectors projected to 3D via PCA |
+| Gradient Descent | Rosenbrock loss surface animation |
+| Decision Trees | GBDT ranker — feature importance + boosting curve |
+| User History | Session query log + analytics |
+| Metrics | Training loss/perplexity curves |
 
-**Backend (Flask):**
-- `app.py` — main Flask server with all API routes
-- `model/trie.py` — Trie prefix tree for O(k) autocomplete
-- `model/markov.py` — N-gram Markov chain language model
-- `model/gbdt.py` — Gradient-Boosted Decision Trees (sklearn)
-- `model/embeddings.py` — GPT-2 embedding extraction, PCA projection, LSTM gate simulation, gradient descent surface
-- `model/inference.py` — GPT-2 transformer inference + attention extraction
-- `model/session_store.py` — in-memory user session tracking
+## Deployment (Render)
 
-**Frontend (Vanilla JS + D3.js + Three.js + Chart.js):**
-- `templates/index.html` — 10-tab research dashboard
-- `static/style.css` — dark research theme
-- `static/main.js` — tab switching, search engine, pipeline visualization
-- `static/viz_trie.js` — D3.js radial trie explorer
-- `static/viz_markov.js` — D3.js force-directed Markov state graph
-- `static/viz_attention.js` — Canvas attention heatmap (Viridis colormap)
-- `static/viz_lstm.js` — SVG LSTM cell architecture + Chart.js timeline
-- `static/viz_embeddings.js` — Three.js 3D word embedding point cloud
-- `static/viz_gradient.js` — Three.js 3D loss surface + gradient descent animation
-- `static/viz_gbdt.js` — D3.js decision tree + feature importance charts
-- `static/viz_history.js` — session analytics, word cloud, intent distribution
-- `static/viz_metrics.js` — TensorBoard-style training metrics
+The project is Render-ready:
+- `Procfile`: `web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120`
+- `render.yaml`: complete service config (auto-generates SESSION_SECRET)
+- `SESSION_SECRET` env var is read from environment (falls back to a dev key)
 
-## Research Modules
+**Important:** Use 1 worker on Render — PyTorch models are large and multi-worker would OOM on free/starter plans.
 
-| Tab | Concept | Key Tech |
-|-----|---------|----------|
-| Search Engine | Multi-model autocomplete | GPT-2 + Trie + Markov merged |
-| Trie Explorer | O(k) prefix matching | D3.js radial tree |
-| Markov Chain | N-gram state transitions | D3.js force graph |
-| Attention Maps | Self-attention visualization | Canvas heatmap (Viridis) |
-| LSTM Internals | Gate activations per character | SVG architecture + Chart.js |
-| 3D Embeddings | PCA-projected word vectors | Three.js point cloud |
-| Gradient Descent | Rosenbrock loss surface | Three.js 3D mesh + animation |
-| Decision Trees | GBDT tree #1 + feature importance | D3.js tree + Chart.js |
-| User History | Session analytics, word cloud | Chart.js doughnut + scatter |
-| Metrics | Training loss + perplexity | Chart.js line charts |
-
-## API Endpoints
-
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/search` | POST | All-in-one: Trie + Markov + Transformer |
-| `/api/predict` | POST | GPT-2 transformer autocomplete |
-| `/api/trie?prefix=` | GET | Trie search + structure |
-| `/api/markov?query=&n=` | GET | Markov predictions + force graph |
-| `/api/attention?query=&layer=` | GET | Multi-head attention weights |
-| `/api/lstm?query=` | GET | LSTM gate activations |
-| `/api/embeddings?words=` | GET | 3D PCA word vectors |
-| `/api/gradient` | GET | Loss surface + descent path |
-| `/api/gbdt?query=` | GET | GBDT tree + feature importance |
-| `/api/history` | GET | User session history |
-| `/api/metrics` | GET | Training metrics |
+## Project Structure
+```
+app.py              # Flask app, all API routes
+model/
+  inference.py      # GPT-2 autocomplete + attention
+  embeddings.py     # Word vectors, PCA, LSTM simulation, gradient surface
+  gbdt.py           # GBDT ranker + feature extraction
+  markov.py         # Markov chain (bigram/trigram)
+  trie.py           # Prefix trie
+  session_store.py  # In-memory session history
+  train.py          # Fine-tuning pipeline (optional)
+  data/queries.txt  # Training corpus
+static/
+  viz_*.js          # One JS file per visualization tab
+  style.css         # Dark theme
+  main.js           # Tab controller + search engine logic
+templates/index.html
+```
 
 ## User Preferences
-
-- Pure black theme — no gradients, no glows, no rounded corners (border-radius: 0 everywhere)
-- No emoji icons anywhere in the UI — plain text labels only
-- Minimal, human-written aesthetic: flat boxes, sharp edges, muted color palette
-- All visualizations should work without the fine-tuned model (base GPT-2 used as fallback)
-- Keep the existing Flask + Vanilla JS stack — no frontend framework migration
+- Keep the existing project structure and stack — do not restructure or migrate.

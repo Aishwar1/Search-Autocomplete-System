@@ -25,10 +25,6 @@ function onTabActivated(tab) {
     window._markovInited = true;
     runMarkovModel('how to learn', 2);
   }
-  if (tab === 'attention' && !window._attnInited) {
-    window._attnInited = true;
-    runAttention('how to learn machine learning', 5);
-  }
   if (tab === 'lstm' && !window._lstmInited) {
     window._lstmInited = true;
     initLSTMViz();

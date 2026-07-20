@@ -32,15 +32,60 @@ function initLSTMViz() {
 }
 
 async function runLSTM(query) {
+  const loading = document.getElementById('lstm-loading');
+  if (loading) loading.classList.remove('hidden');
+
   try {
     const res = await fetch(`/api/lstm?query=${encodeURIComponent(query)}`);
     _lstmData = await res.json();
     _lstmStep = 0;
+    if (loading) loading.classList.add('hidden');
     updateLSTMStep();
     renderLSTMTimeline(_lstmData.steps || []);
+    renderLSTMWordSummary(_lstmData);
   } catch (e) {
+    if (loading) { loading.textContent = 'Error: ' + e.message; }
     console.error('LSTM error:', e);
   }
+}
+
+function renderLSTMWordSummary(data) {
+  const el = document.getElementById('lstm-explain');
+  if (!el) return;
+
+  const steps = data.steps || [];
+  if (!steps.length) return;
+
+  const query = data.query || '';
+  const maxForget = Math.max(...steps.map(s => s.forget_mean));
+  const minForget = Math.min(...steps.map(s => s.forget_mean));
+  const mostForgetStep = steps.find(s => s.forget_mean === minForget);
+  const mostRetainStep = steps.find(s => s.forget_mean === maxForget);
+
+  const safeCharLabel = c => (c === ' ' ? '·(space)' : `'${c}'`);
+
+  // Build DOM safely — no user text in innerHTML
+  el.innerHTML = '';
+
+  const b = document.createElement('strong');
+  b.textContent = 'Processing: ';
+  el.appendChild(b);
+
+  const qSpan = document.createElement('span');
+  qSpan.className = 'explain-highlight';
+  qSpan.textContent = query;          // safe — textContent
+  el.appendChild(qSpan);
+
+  const info = document.createElement('span');
+  // Only static/numeric values go into innerHTML here
+  info.innerHTML =
+    ` — <strong>${steps.length}</strong> character steps computed using real LSTM weights (sigmoid + tanh). ` +
+    `The forget gate was <strong>lowest</strong> at ` +
+    `<span class="explain-highlight">${safeCharLabel(mostForgetStep?.char || '?')}</span> ` +
+    `(model reset memory) and <strong>highest</strong> at ` +
+    `<span class="explain-highlight">${safeCharLabel(mostRetainStep?.char || '?')}</span> ` +
+    `(model retained context). Use &lt; &gt; to step through each character.`;
+  el.appendChild(info);
 }
 
 function updateLSTMStep() {

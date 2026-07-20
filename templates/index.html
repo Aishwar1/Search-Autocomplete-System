@@ -42,7 +42,6 @@
   <button class="tab-btn active" data-tab="search">Search Engine</button>
   <button class="tab-btn" data-tab="trie">Trie Explorer</button>
   <button class="tab-btn" data-tab="markov">Markov Chain</button>
-  <button class="tab-btn" data-tab="attention">Attention Maps</button>
   <button class="tab-btn" data-tab="lstm">LSTM Internals</button>
   <button class="tab-btn" data-tab="embeddings">3D Embeddings</button>
   <button class="tab-btn" data-tab="gradient">Gradient Descent</button>
@@ -163,6 +162,10 @@
         <input id="trie-input" class="ctrl-input" placeholder="e.g. how to" value="how to">
         <button class="btn-primary" id="trie-search-btn">Search Trie</button>
 
+        <div class="explain-callout" id="trie-explain">
+          <strong>How it works:</strong> Type a prefix above and click Search. The trie walks down the tree one character at a time — <span class="explain-highlight">h → o → w</span> — and collects all stored queries under that node. The blue highlighted path in the diagram shows exactly which nodes were visited.
+        </div>
+
         <div class="info-card" style="margin-top:14px;">
           <div class="info-row"><span class="info-key">Nodes visited</span><span class="info-val" id="trie-nodes-visited">—</span></div>
           <div class="info-row"><span class="info-key">Subtree size</span><span class="info-val" id="trie-subtree">—</span></div>
@@ -210,6 +213,11 @@
         <label class="ctrl-label">Query:</label>
         <input id="markov-input" class="ctrl-input" placeholder="e.g. how to learn" value="how to learn">
 
+        <div class="explain-callout" id="markov-explain">
+          <strong>How it works:</strong> The model looks at your <em>last word</em> (or last 2 for trigram) and counts how often each next word followed it in the training corpus. The bar chart shows those probabilities — wider bar = more likely next word.
+        </div>
+        <div id="markov-live-explain" class="explain-callout" style="display:none;border-left-color:var(--cyan)"></div>
+
         <div class="ngram-toggle">
           <button class="ngram-btn active" data-n="2">Bigram</button>
           <button class="ngram-btn" data-n="3">Trigram</button>
@@ -252,66 +260,11 @@
   </div>
 
 
-  <!-- TAB 4: ATTENTION MAPS -->
-  <div class="tab-panel" id="tab-attention">
-    <div class="panel-header">
-      <h2 class="panel-title">Transformer Self-Attention Maps</h2>
-      <p class="panel-desc">GPT-2 has 12 layers x 12 heads of self-attention. Each head learns what to attend to. Attn(Q,K,V) = softmax(QK^T / sqrt(dk)) * V. Hot cells = strong attention flow.</p>
-    </div>
-
-    <div class="attn-layout">
-      <div class="attn-controls">
-        <label class="ctrl-label">Query:</label>
-        <input id="attn-input" class="ctrl-input" placeholder="e.g. how to learn machine learning" value="how to learn machine learning">
-        <button class="btn-primary" id="attn-run-btn">Extract Attention</button>
-
-        <label class="ctrl-label" style="margin-top:12px;">Layer (0-11):</label>
-        <input type="range" id="attn-layer-slider" min="0" max="11" value="5" class="slider">
-        <div class="slider-val">Layer <span id="attn-layer-val">5</span></div>
-
-        <label class="ctrl-label" style="margin-top:12px;">Head:</label>
-        <div class="head-btns" id="attn-head-btns">
-          <button class="head-btn active" data-head="avg">Avg</button>
-          <button class="head-btn" data-head="0">H0</button>
-          <button class="head-btn" data-head="1">H1</button>
-          <button class="head-btn" data-head="2">H2</button>
-          <button class="head-btn" data-head="3">H3</button>
-        </div>
-
-        <div class="info-card" style="margin-top:12px;">
-          <div class="info-row"><span class="info-key">Tokens</span><span class="info-val" id="attn-token-count">—</span></div>
-          <div class="info-row"><span class="info-key">Layers</span><span class="info-val">12</span></div>
-          <div class="info-row"><span class="info-key">Heads</span><span class="info-val">12</span></div>
-          <div class="info-row"><span class="info-key">d_model</span><span class="info-val">768</span></div>
-          <div class="info-row"><span class="info-key">d_head</span><span class="info-val">64</span></div>
-        </div>
-
-        <div class="complexity-box" style="margin-top:10px;">
-          <div class="complexity-title">Attention Formula</div>
-          <div class="equation">Attn(Q,K,V) = softmax(QK^T / sqrt(dk)) * V</div>
-          <div class="equation-note">Complexity: O(n^2 * d) per head</div>
-          <div class="equation" style="margin-top:4px;">MultiHead = Concat(head1...headn) * W_O</div>
-        </div>
-      </div>
-
-      <div class="attn-viz-area">
-        <div id="attn-loading" class="viz-loading hidden">Extracting attention weights...</div>
-        <div class="viz-title">Attention Heatmap</div>
-        <div class="canvas-wrap">
-          <canvas id="attn-canvas"></canvas>
-        </div>
-        <div class="viz-title" style="margin-top:16px;">All-Heads Summary (Layer <span id="attn-layer-label">5</span>)</div>
-        <div id="attn-heads-grid" class="attn-heads-grid"></div>
-      </div>
-    </div>
-  </div>
-
-
   <!-- TAB 5: LSTM INTERNALS -->
   <div class="tab-panel" id="tab-lstm">
     <div class="panel-header">
       <h2 class="panel-title">LSTM Cell — Gate Activations</h2>
-      <p class="panel-desc">Long Short-Term Memory networks control information flow through three gates. Below are the live gate activations computed per token in your query using actual LSTM mathematics.</p>
+      <p class="panel-desc">Long Short-Term Memory networks control information flow through three gates. Below are the live gate activations computed per character in your query using actual LSTM mathematics — real weights, real sigmoid/tanh, step by step.</p>
     </div>
 
     <div class="lstm-layout">
@@ -320,7 +273,12 @@
         <input id="lstm-input" class="ctrl-input" placeholder="e.g. how to learn" value="how to learn machine">
         <button class="btn-primary" id="lstm-run-btn">Compute Gates</button>
 
-        <label class="ctrl-label" style="margin-top:12px;">Time step:</label>
+        <div class="explain-callout" id="lstm-explain">
+          <strong>What you're seeing:</strong> Your text is fed into an LSTM <em>one character at a time</em>. At each step the cell decides what to <span style="color:var(--red)">forget</span>, what new info to <span style="color:var(--cyan)">input</span>, and what to <span style="color:var(--green)">output</span>. Use the &lt; &gt; arrows (or click the timeline) to step through each character.
+        </div>
+        <div id="lstm-loading" class="viz-loading hidden" style="text-align:left;padding:8px 0;font-size:12px;">Computing gate activations...</div>
+
+        <label class="ctrl-label" style="margin-top:8px;">Time step:</label>
         <div id="lstm-step-nav" class="step-nav">
           <button id="lstm-prev" class="step-btn">&lt;</button>
           <span id="lstm-step-label" class="step-label">t = 0</span>
@@ -476,7 +434,12 @@
         <input id="gbdt-input" class="ctrl-input" placeholder="e.g. how to learn python" value="how to learn python">
         <button class="btn-primary" id="gbdt-run-btn">Explain Ranking</button>
 
-        <div class="info-card" style="margin-top:12px;">
+        <div class="explain-callout">
+          <strong>How it works:</strong> 16 features are extracted from your query (length, word count, keyword flags, corpus frequency). 50 decision trees each vote. The <em>Feature Contributions</em> bars below show which features drove the ranking score most — longer bar = bigger impact.
+        </div>
+        <div id="gbdt-live-explain" class="explain-callout" style="display:none;border-left-color:var(--green)"></div>
+
+        <div class="info-card" style="margin-top:4px;">
           <div class="info-row"><span class="info-key">Popularity score</span><span class="info-val" id="gbdt-score">—</span></div>
           <div class="info-row"><span class="info-key">n_estimators</span><span class="info-val">50</span></div>
           <div class="info-row"><span class="info-key">max_depth</span><span class="info-val">3</span></div>
@@ -651,7 +614,6 @@
 
 <script src="/static/viz_trie.js"></script>
 <script src="/static/viz_markov.js"></script>
-<script src="/static/viz_attention.js"></script>
 <script src="/static/viz_lstm.js"></script>
 <script src="/static/viz_embeddings.js"></script>
 <script src="/static/viz_gradient.js"></script>

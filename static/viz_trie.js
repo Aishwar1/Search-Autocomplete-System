@@ -18,9 +18,60 @@ async function runTrieSearch(prefix) {
     _trieData = await res.json();
     renderTrie(_trieData, prefix);
     updateTrieStats(_trieData);
+    renderTrieLiveExplain(prefix, _trieData);
   } catch (e) {
     console.error('Trie error:', e);
   }
+}
+
+function renderTrieLiveExplain(prefix, data) {
+  const el = document.getElementById('trie-explain');
+  if (!el) return;
+
+  if (!prefix) {
+    el.innerHTML = '<strong>How it works:</strong> Type a prefix and click Search. The trie walks down character by character and collects all matching queries at the leaf nodes.';
+    return;
+  }
+
+  const path = (data.traversal_path || []).map(s => s.char === ' ' ? '[sp]' : s.char);
+  const suggestions = data.suggestions || [];
+  const count = suggestions.length;
+  const nodesVisited = data.nodes_visited ?? '—';
+
+  // Build path spans safely via DOM
+  el.innerHTML = '';
+
+  const intro = document.createElement('span');
+  intro.innerHTML = '<strong>You searched for "</strong>';
+  el.appendChild(intro);
+
+  const em = document.createElement('em');
+  em.textContent = prefix;          // safe — textContent never executes HTML
+  el.appendChild(em);
+
+  const rest = document.createElement('span');
+  rest.innerHTML = '<strong>"</strong> — the trie traversed: ';
+  el.appendChild(rest);
+
+  if (path.length) {
+    path.forEach((c, i) => {
+      const span = document.createElement('span');
+      span.className = 'explain-highlight';
+      span.textContent = c;          // safe
+      el.appendChild(span);
+      if (i < path.length - 1) {
+        el.appendChild(document.createTextNode(' → '));
+      }
+    });
+  } else {
+    el.appendChild(document.createTextNode('(root)'));
+  }
+
+  const summary = document.createElement('span');
+  summary.innerHTML =
+    ` and found <strong>${count} matching quer${count === 1 ? 'y' : 'ies'}</strong> in the subtree. ` +
+    `Nodes visited: <strong>${Number(nodesVisited) || nodesVisited}</strong> (green nodes = end of a full query).`;
+  el.appendChild(summary);
 }
 
 function updateTrieStats(data) {

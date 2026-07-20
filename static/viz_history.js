@@ -28,6 +28,10 @@ function updateHistStats(data) {
 
 function renderHistoryTimeline(queries) {
   const container = document.getElementById('hist-timeline');
+
+  // Preserve scroll position so auto-refresh doesn't jump the page
+  const prevScroll = container.scrollTop;
+
   container.innerHTML = '';
 
   if (!queries.length) {
@@ -45,6 +49,9 @@ function renderHistoryTimeline(queries) {
     `;
     container.appendChild(div);
   });
+
+  // Restore scroll so the list doesn't auto-jump on refresh
+  container.scrollTop = prevScroll;
 }
 
 function renderWordCloud(words) {

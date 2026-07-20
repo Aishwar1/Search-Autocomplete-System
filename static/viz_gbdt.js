@@ -18,16 +18,59 @@ async function runGBDT(query) {
     const res = await fetch(`/api/gbdt?query=${encodeURIComponent(query)}`);
     const data = await res.json();
 
+    const score = data.popularity_score;
     document.getElementById('gbdt-score').textContent =
-      data.popularity_score !== undefined ? (data.popularity_score * 100).toFixed(1) + '%' : '—';
+      score !== undefined ? (score * 100).toFixed(1) + '%' : '—';
 
     renderGBDTFeatures(data.features || []);
     renderGBDTTree(data.tree);
     renderImportanceChart(data.global_importance || []);
     renderBoostingCurve(data.boosting_curve || []);
+    renderGBDTLiveExplain(query, data);
   } catch (e) {
     console.error('GBDT error:', e);
   }
+}
+
+function renderGBDTLiveExplain(query, data) {
+  const el = document.getElementById('gbdt-live-explain');
+  if (!el) return;
+
+  const features = data.features || [];
+  const score = data.popularity_score;
+  const top2 = features.slice(0, 2);
+
+  if (!top2.length) { el.style.display = 'none'; return; }
+
+  el.style.display = '';
+  el.innerHTML = '';   // clear previous content
+
+  // Verdict — only numeric/static values in innerHTML
+  const scorePct = (score * 100).toFixed(1);
+  const verdictEl = document.createElement('strong');
+  if (score >= 0.5) {
+    verdictEl.style.color = 'var(--green)';
+    verdictEl.textContent = 'Popular query';
+  } else {
+    verdictEl.style.color = 'var(--amber)';
+    verdictEl.textContent = 'Less popular query';
+  }
+  el.appendChild(verdictEl);
+  el.appendChild(document.createTextNode(` (${scorePct}% score) — top features: `));
+
+  // Feature names come from a fixed enum in gbdt.py, but escape them anyway
+  top2.forEach((f, i) => {
+    const span = document.createElement('span');
+    span.className = 'explain-highlight';
+    span.textContent = f.feature.replace(/_/g, ' ');   // safe — textContent
+    el.appendChild(span);
+    el.appendChild(document.createTextNode(` (${(f.importance * 100).toFixed(1)}%)`));
+    if (i < top2.length - 1) el.appendChild(document.createTextNode(' and '));
+  });
+
+  const tail = document.createElement('span');
+  tail.innerHTML = '. The <em>Feature Contributions</em> bars below rank all 16 signals by impact on the 50-tree ensemble.';
+  el.appendChild(tail);
 }
 
 function renderGBDTFeatures(features) {

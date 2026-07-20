@@ -7,3 +7,4 @@ scikit-learn
 numpy
 scipy
 accelerate>=0.26.0
+gunicorn

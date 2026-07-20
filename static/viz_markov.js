@@ -31,9 +31,54 @@ async function runMarkovModel(query, n) {
     renderMarkovCompletions(data.completions || []);
     renderMarkovHeatmap(data.transition_matrix || {});
     updateMarkovStats(data.stats || {});
+    renderMarkovLiveExplain(query, data.next_word_predictions || [], n);
   } catch (e) {
     console.error('Markov error:', e);
   }
+}
+
+function renderMarkovLiveExplain(query, preds, n) {
+  const el = document.getElementById('markov-live-explain');
+  if (!el) return;
+
+  const words = query.trim().split(/\s+/);
+  const contextSize = n - 1;
+  const context = words.slice(-contextSize).join(' ') || query.trim();
+  const top3 = preds.slice(0, 3);
+
+  if (!top3.length) { el.style.display = 'none'; return; }
+
+  el.style.display = '';
+  el.innerHTML = '';   // clear previous
+
+  // "After" label — user context goes via textContent only
+  const intro = document.createElement('span');
+  intro.innerHTML = '<strong>After "</strong>';
+  el.appendChild(intro);
+
+  const ctxEm = document.createElement('em');
+  ctxEm.textContent = context;        // safe
+  el.appendChild(ctxEm);
+
+  const mid = document.createElement('span');
+  mid.innerHTML = `<strong>"</strong> the ${n === 2 ? 'bigram' : 'trigram'} model predicts: `;
+  el.appendChild(mid);
+
+  top3.forEach((p, i) => {
+    const span = document.createElement('span');
+    span.className = 'explain-highlight';
+    span.textContent = p.word;        // safe — textContent
+    el.appendChild(span);
+
+    const prob = document.createTextNode(` (${(p.probability * 100).toFixed(1)}%)`);
+    el.appendChild(prob);
+
+    if (i < top3.length - 1) el.appendChild(document.createTextNode(', '));
+  });
+
+  const tail = document.createElement('span');
+  tail.innerHTML = '. The graph on the right shows the full transition network — brighter/thicker edges = higher probability paths.';
+  el.appendChild(tail);
 }
 
 function updateMarkovStats(stats) {

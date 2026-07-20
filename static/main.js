@@ -1,0 +1,277 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   QueryMind Research Lab — Main Controller
+══════════════════════════════════════════════════════════════════════════ */
+
+// ── Tab Switching ────────────────────────────────────────────────────────────
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${target}`).classList.add('active');
+
+    // Lazy-init visualizations on first switch
+    onTabActivated(target);
+  });
+});
+
+function onTabActivated(tab) {
+  if (tab === 'trie' && !window._trieInited) {
+    window._trieInited = true;
+    initTrieViz();
+    runTrieSearch('how to');
+  }
+  if (tab === 'markov' && !window._markovInited) {
+    window._markovInited = true;
+    runMarkovModel('how to learn', 2);
+  }
+  if (tab === 'attention' && !window._attnInited) {
+    window._attnInited = true;
+    runAttention('how to learn machine learning', 5);
+  }
+  if (tab === 'lstm' && !window._lstmInited) {
+    window._lstmInited = true;
+    initLSTMViz();
+    runLSTM('how to learn machine');
+  }
+  if (tab === 'embeddings' && !window._embedInited) {
+    window._embedInited = true;
+    initEmbeddings3D();
+    loadEmbeddings();
+  }
+  if (tab === 'gradient' && !window._gradInited) {
+    window._gradInited = true;
+    initGradientViz();
+    loadGradientSurface();
+  }
+  if (tab === 'gbdt' && !window._gbdtInited) {
+    window._gbdtInited = true;
+    runGBDT('how to learn python');
+  }
+  if (tab === 'history' && !window._histInited) {
+    window._histInited = true;
+    loadHistory();
+  }
+  if (tab === 'metrics' && !window._metricsInited) {
+    window._metricsInited = true;
+    loadMetrics();
+  }
+}
+
+// ── Search Engine (Main) ─────────────────────────────────────────────────────
+const mainSearch  = document.getElementById('main-search');
+const dropdown    = document.getElementById('search-dropdown');
+const spinner     = document.getElementById('search-spinner');
+const trieResults = document.getElementById('trie-results');
+const markovResults = document.getElementById('markov-results');
+const tfResults   = document.getElementById('transformer-results');
+const tokenDisplay = document.getElementById('token-display');
+
+let searchDebounce;
+
+mainSearch.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  const q = mainSearch.value.trim();
+
+  if (q.length < 2) {
+    dropdown.classList.add('hidden');
+    clearResults();
+    return;
+  }
+
+  spinner.classList.remove('hidden');
+  searchDebounce = setTimeout(() => doSearch(q), 280);
+});
+
+mainSearch.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    dropdown.classList.add('hidden');
+  }
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrapper')) {
+    dropdown.classList.add('hidden');
+  }
+});
+
+async function doSearch(query) {
+  const t0 = performance.now();
+
+  try {
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    const data = await res.json();
+    const elapsed = performance.now() - t0;
+
+    spinner.classList.add('hidden');
+    renderSearchResults(query, data, elapsed);
+    updatePipeline(query, data);
+    renderDropdown(data);
+  } catch (err) {
+    spinner.classList.add('hidden');
+    console.error('Search error:', err);
+  }
+}
+
+function renderSearchResults(query, data, elapsed) {
+  // Trie
+  renderResultList(trieResults, data.trie || [], 'trie-fill', 'freq');
+  document.getElementById('trie-time').textContent = `${elapsed.toFixed(0)}ms`;
+
+  // Markov
+  renderResultList(markovResults, data.markov || [], 'markov-fill', 'confidence');
+  document.getElementById('markov-time').textContent = `N-gram`;
+
+  // Transformer
+  renderResultList(tfResults, data.transformer || [], 'transformer-fill', 'confidence');
+  document.getElementById('transformer-time').textContent =
+    data.is_finetuned ? 'Fine-tuned' : 'Base GPT-2';
+
+  // Tokens
+  renderTokens(data.tokens || []);
+}
+
+function renderResultList(ul, items, fillClass, scoreKey) {
+  ul.innerHTML = '';
+  if (!items.length) {
+    ul.innerHTML = '<li style="padding:10px;color:var(--text-muted);font-size:12px;">No results yet — keep typing…</li>';
+    return;
+  }
+
+  items.forEach(item => {
+    const text   = item.text || item.query || '';
+    const score  = item[scoreKey] || item.confidence || item.frequency || 0;
+    const pct    = Math.min(100, score * 100).toFixed(1);
+
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div class="res-row">
+        <span class="res-text">${escHtml(text)}</span>
+        <span class="res-conf">${pct}%</span>
+      </div>
+      <div class="res-bar-track">
+        <div class="res-bar-fill ${fillClass}" style="width:${pct}%"></div>
+      </div>
+    `;
+    li.addEventListener('click', () => {
+      mainSearch.value = text;
+      dropdown.classList.add('hidden');
+      doSearch(text);
+    });
+    ul.appendChild(li);
+  });
+}
+
+function renderDropdown(data) {
+  dropdown.innerHTML = '';
+  const all = [
+    ...(data.trie || []).slice(0, 3).map(x => ({ ...x, src: 'Trie' })),
+    ...(data.markov || []).slice(0, 2).map(x => ({ ...x, src: 'Markov' })),
+    ...(data.transformer || []).slice(0, 3).map(x => ({ ...x, src: '⚡' }))
+  ];
+
+  if (!all.length) { dropdown.classList.add('hidden'); return; }
+
+  all.forEach(item => {
+    const text = item.text || '';
+    const div = document.createElement('div');
+    div.className = 'dropdown-item';
+    div.innerHTML = `
+      <span class="di-icon">🔍</span>
+      <span class="di-text">${escHtml(text)}</span>
+      <span class="di-source">${item.src}</span>
+    `;
+    div.addEventListener('click', () => {
+      mainSearch.value = text;
+      dropdown.classList.add('hidden');
+      doSearch(text);
+    });
+    dropdown.appendChild(div);
+  });
+
+  dropdown.classList.remove('hidden');
+}
+
+function renderTokens(tokens) {
+  tokenDisplay.innerHTML = '';
+  if (!tokens.length) {
+    tokenDisplay.innerHTML = '<span class="token-placeholder">Type a query above to see BPE tokenization</span>';
+    return;
+  }
+
+  tokens.forEach((t, i) => {
+    const clean = t.replace('Ġ', '·');
+    const chip = document.createElement('span');
+    chip.className = 'token-chip' + (i >= tokens.length - 2 ? ' last-2' : '');
+    chip.textContent = clean;
+    chip.title = `Token ${i}: "${t}"`;
+    tokenDisplay.appendChild(chip);
+  });
+}
+
+function updatePipeline(query, data) {
+  document.getElementById('pipe-query-val').textContent = query.slice(0, 30);
+  document.getElementById('pipe-token-val').textContent =
+    (data.tokens || []).length + ' tokens';
+  document.getElementById('pipe-topk-val').textContent =
+    (data.transformer || []).length + ' candidates';
+
+  document.querySelectorAll('.pipe-node').forEach(n => n.classList.remove('active'));
+  ['pipe-input','pipe-tokenize','pipe-embed','pipe-attn','pipe-topk','pipe-rank']
+    .forEach((id, i) => {
+      setTimeout(() => {
+        document.querySelectorAll('.pipe-node').forEach(n => n.classList.remove('active'));
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+      }, i * 180);
+    });
+}
+
+function clearResults() {
+  [trieResults, markovResults, tfResults].forEach(ul => { ul.innerHTML = ''; });
+  tokenDisplay.innerHTML = '<span class="token-placeholder">Type a query above to see BPE tokenization</span>';
+}
+
+// ── Load header stats from Markov/Trie ───────────────────────────────────────
+async function loadHeaderStats() {
+  try {
+    const res = await fetch('/api/markov?query=how+to+learn&n=2');
+    const data = await res.json();
+    const stats = data.stats || {};
+    document.querySelector('#stat-corpus .stat-val').textContent =
+      (stats.corpus_size || '—').toString();
+    document.querySelector('#stat-vocab .stat-val').textContent =
+      (stats.vocabulary_size || '—').toString();
+    document.querySelector('#stat-model .stat-val').textContent = 'GPT-2';
+  } catch (e) {}
+}
+
+// ── Utility ──────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function viridis(t) {
+  // Viridis colormap approximation
+  t = Math.max(0, Math.min(1, t));
+  const r = Math.round(68 + t * (253 - 68));
+  const g = Math.round(1 + t * (231 - 1));
+  const b = Math.round(84 - t * (84 - 37) + Math.sin(t * Math.PI) * 80);
+  return `rgb(${r},${g},${b})`;
+}
+
+window.viridisColor = viridis;
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadHeaderStats();

@@ -2,60 +2,709 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Search Autocomplete (LLM)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueryMind Research Lab</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>">
 </head>
-
 <body>
 
-<h2>Search Autocomplete System (NLP + Transformer)</h2>
-
-<div class="main-container">
-
-  <!-- LEFT -->
-  <div class="left-panel">
-    <input id="search" placeholder="Type like Google..." />
-    <ul id="results"></ul>
-
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════════════════════════════════ -->
+<header class="lab-header">
+  <div class="header-inner">
+    <div class="lab-brand">
+      <span class="brand-icon">⬡</span>
+      <div>
+        <h1 class="brand-title">QueryMind <span class="brand-accent">Research Lab</span></h1>
+        <p class="brand-sub">Search Autocomplete &amp; Query Prediction — Deep Research Platform</p>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-chip" id="stat-corpus">
+        <span class="stat-val">—</span>
+        <span class="stat-lbl">Corpus Size</span>
+      </div>
+      <div class="stat-chip" id="stat-vocab">
+        <span class="stat-val">—</span>
+        <span class="stat-lbl">Vocabulary</span>
+      </div>
+      <div class="stat-chip" id="stat-model">
+        <span class="stat-val">—</span>
+        <span class="stat-lbl">Model</span>
+      </div>
+    </div>
   </div>
+</header>
 
-  <!-- RIGHT -->
-  <div class="right-panel">
-    <h3>How Prediction is Made</h3>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB NAVIGATION
+══════════════════════════════════════════════════════════════════════════════ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="search">🔍 Search Engine</button>
+  <button class="tab-btn" data-tab="trie">🌳 Trie Explorer</button>
+  <button class="tab-btn" data-tab="markov">🔗 Markov Chain</button>
+  <button class="tab-btn" data-tab="attention">🎯 Attention Maps</button>
+  <button class="tab-btn" data-tab="lstm">🧠 LSTM Internals</button>
+  <button class="tab-btn" data-tab="embeddings">🌐 3D Embeddings</button>
+  <button class="tab-btn" data-tab="gradient">📉 Gradient Descent</button>
+  <button class="tab-btn" data-tab="gbdt">🌲 Decision Trees</button>
+  <button class="tab-btn" data-tab="history">👤 User History</button>
+  <button class="tab-btn" data-tab="metrics">📊 Metrics</button>
+</nav>
 
-    <div class="pipeline">
-      <div class="pipeline-step active" id="flow-query">
-        <span class="step-title">User Query</span>
-        <span class="step-desc">—</span>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     TAB PANELS
+══════════════════════════════════════════════════════════════════════════════ -->
+<main class="tab-content">
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 1: SEARCH ENGINE
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="tab-search">
+    <div class="panel-header">
+      <h2 class="panel-title">Search Autocomplete Engine</h2>
+      <p class="panel-desc">Three models run in parallel — Trie (O(k) lookup), Markov N-gram (probabilistic), and Transformer (deep contextual). Results are merged and re-ranked by GBDT.</p>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-hero">
+      <div class="search-logo">Q</div>
+      <div class="search-wrapper">
+        <div class="search-box-wrap">
+          <span class="search-icon">🔍</span>
+          <input id="main-search" class="search-input" placeholder="Search or type a query…" autocomplete="off" spellcheck="false">
+          <span class="search-spinner hidden" id="search-spinner">⟳</span>
+        </div>
+        <div id="search-dropdown" class="search-dropdown hidden"></div>
+      </div>
+    </div>
+
+    <!-- Three-column results -->
+    <div class="results-grid">
+      <div class="results-col">
+        <div class="col-header trie-header">
+          <span class="col-icon">🌳</span>
+          <div>
+            <div class="col-title">Trie</div>
+            <div class="col-sub">Prefix matching · O(k)</div>
+          </div>
+          <span class="col-badge" id="trie-time">—</span>
+        </div>
+        <ul class="results-list" id="trie-results"></ul>
       </div>
 
-      <div class="pipeline-arrow">↓</div>
-
-      <div class="pipeline-step" id="flow-tokens">
-        <span class="step-title">Tokenization</span>
-        <span class="step-desc">—</span>
+      <div class="results-col">
+        <div class="col-header markov-header">
+          <span class="col-icon">🔗</span>
+          <div>
+            <div class="col-title">Markov Chain</div>
+            <div class="col-sub">Bigram N-gram model</div>
+          </div>
+          <span class="col-badge" id="markov-time">—</span>
+        </div>
+        <ul class="results-list" id="markov-results"></ul>
       </div>
 
-      <div class="pipeline-arrow">↓</div>
-
-      <div class="pipeline-step">
-        <span class="step-title">Transformer</span>
-        <span class="step-desc">Self-Attention</span>
+      <div class="results-col">
+        <div class="col-header transformer-header">
+          <span class="col-icon">⚡</span>
+          <div>
+            <div class="col-title">Transformer</div>
+            <div class="col-sub">GPT-2 contextual model</div>
+          </div>
+          <span class="col-badge" id="transformer-time">—</span>
+        </div>
+        <ul class="results-list" id="transformer-results"></ul>
       </div>
+    </div>
 
-      <div class="pipeline-arrow">↓</div>
+    <!-- Pipeline Flow -->
+    <div class="pipeline-section">
+      <h3 class="section-title">Pipeline</h3>
+      <div class="pipeline-flow">
+        <div class="pipe-node active" id="pipe-input">
+          <div class="pipe-icon">⌨️</div>
+          <div class="pipe-label">Input Query</div>
+          <div class="pipe-val" id="pipe-query-val">—</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node" id="pipe-tokenize">
+          <div class="pipe-icon">✂️</div>
+          <div class="pipe-label">Tokenize</div>
+          <div class="pipe-val" id="pipe-token-val">—</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node" id="pipe-embed">
+          <div class="pipe-icon">📐</div>
+          <div class="pipe-label">Embed</div>
+          <div class="pipe-val">768-d vectors</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node" id="pipe-attn">
+          <div class="pipe-icon">🎯</div>
+          <div class="pipe-label">Self-Attention</div>
+          <div class="pipe-val">12 heads × 12 layers</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node" id="pipe-topk">
+          <div class="pipe-icon">🏆</div>
+          <div class="pipe-label">Top-K Sample</div>
+          <div class="pipe-val" id="pipe-topk-val">—</div>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node" id="pipe-rank">
+          <div class="pipe-icon">📈</div>
+          <div class="pipe-label">GBDT Re-rank</div>
+          <div class="pipe-val">Ensemble boost</div>
+        </div>
+      </div>
+    </div>
 
-      <div class="pipeline-step" id="flow-output">
-        <span class="step-title">Top-K Predictions</span>
-        <span class="step-desc">—</span>
+    <!-- Token Visualization -->
+    <div class="token-section">
+      <h3 class="section-title">Token Breakdown</h3>
+      <div id="token-display" class="token-display">
+        <span class="token-placeholder">Type a query above to see BPE tokenization</span>
       </div>
     </div>
   </div>
 
-</div>
 
-<script src="/static/script.js"></script>
+  <!-- ─────────────────────────────────────────────────────
+       TAB 2: TRIE EXPLORER
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-trie">
+    <div class="panel-header">
+      <h2 class="panel-title">Trie (Prefix Tree) Explorer</h2>
+      <p class="panel-desc">A trie stores every query character-by-character. Prefix search is <code>O(k)</code> where k is the prefix length — orders of magnitude faster than <code>O(n)</code> linear scan. Google uses a distributed trie at petabyte scale.</p>
+    </div>
+
+    <div class="trie-layout">
+      <div class="trie-controls">
+        <label class="ctrl-label">Type a prefix:</label>
+        <input id="trie-input" class="ctrl-input" placeholder="e.g. how to" value="how to">
+        <button class="btn-primary" id="trie-search-btn">Explore Trie</button>
+
+        <div class="info-card" style="margin-top:16px;">
+          <div class="info-row"><span class="info-key">Nodes visited</span><span class="info-val" id="trie-nodes-visited">—</span></div>
+          <div class="info-row"><span class="info-key">Subtree size</span><span class="info-val" id="trie-subtree">—</span></div>
+          <div class="info-row"><span class="info-key">Total nodes</span><span class="info-val" id="trie-total-nodes">—</span></div>
+          <div class="info-row"><span class="info-key">Max depth</span><span class="info-val" id="trie-max-depth">—</span></div>
+          <div class="info-row"><span class="info-key">Total queries</span><span class="info-val" id="trie-total-queries">—</span></div>
+        </div>
+
+        <div class="traversal-path" id="trie-traversal">
+          <div class="traverse-label">Traversal path:</div>
+          <div class="traverse-chars" id="trie-path-chars"></div>
+        </div>
+
+        <div class="suggestions-list-wrap">
+          <div class="traverse-label">Matched queries:</div>
+          <ul id="trie-suggestions" class="compact-list"></ul>
+        </div>
+
+        <div class="complexity-box">
+          <div class="complexity-title">⚡ Complexity Analysis</div>
+          <div class="complexity-row"><span>Search time</span><span class="complexity-val green">O(k)</span></div>
+          <div class="complexity-row"><span>Space</span><span class="complexity-val amber">O(ALPHABET × N)</span></div>
+          <div class="complexity-row"><span>Insert</span><span class="complexity-val green">O(k)</span></div>
+          <div class="complexity-row"><span>vs Linear Scan</span><span class="complexity-val red">O(n × k)</span></div>
+        </div>
+      </div>
+
+      <div class="trie-viz-area">
+        <div class="viz-title">Trie Structure (D3.js Radial Tree)</div>
+        <svg id="trie-svg" width="100%" height="520"></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 3: MARKOV CHAIN
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-markov">
+    <div class="panel-header">
+      <h2 class="panel-title">Markov Chain Language Model</h2>
+      <p class="panel-desc">A Markov chain predicts the next word from the previous N−1 words. <em>P(wₙ | wₙ₋₁)</em> for bigrams. Yahoo's early search used n-gram models exactly like this. Each edge weight is the empirical transition probability from the training corpus.</p>
+    </div>
+
+    <div class="markov-layout">
+      <div class="markov-controls">
+        <label class="ctrl-label">Query:</label>
+        <input id="markov-input" class="ctrl-input" placeholder="e.g. how to learn" value="how to learn">
+
+        <div class="ngram-toggle">
+          <button class="ngram-btn active" data-n="2">Bigram</button>
+          <button class="ngram-btn" data-n="3">Trigram</button>
+        </div>
+        <button class="btn-primary" id="markov-run-btn">Run Model</button>
+
+        <div class="info-card" style="margin-top:14px;">
+          <div class="info-row"><span class="info-key">Vocabulary</span><span class="info-val" id="markov-vocab">—</span></div>
+          <div class="info-row"><span class="info-key">Contexts</span><span class="info-val" id="markov-contexts">—</span></div>
+          <div class="info-row"><span class="info-key">Total tokens</span><span class="info-val" id="markov-tokens">—</span></div>
+          <div class="info-row"><span class="info-key">Corpus size</span><span class="info-val" id="markov-corpus">—</span></div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="traverse-label">Top next-word predictions:</div>
+          <div id="markov-predictions" class="markov-preds"></div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="traverse-label">Generated completions:</div>
+          <ul id="markov-completions" class="compact-list"></ul>
+        </div>
+
+        <div class="complexity-box" style="margin-top:12px;">
+          <div class="complexity-title">📐 Model Equation</div>
+          <div class="equation">P(wₙ | w₁…wₙ₋₁) ≈ P(wₙ | wₙ₋ₖ…wₙ₋₁)</div>
+          <div class="equation-note">Markov Assumption: only the last k words matter</div>
+          <div class="equation" style="margin-top:8px;">P(wₙ | wₙ₋₁) = C(wₙ₋₁, wₙ) / C(wₙ₋₁)</div>
+          <div class="equation-note">Bigram MLE estimate from corpus counts</div>
+        </div>
+      </div>
+
+      <div class="markov-viz-area">
+        <div class="viz-title">State Transition Graph (D3.js Force Layout)</div>
+        <svg id="markov-svg" width="100%" height="420"></svg>
+        <div class="viz-title" style="margin-top:20px;">Transition Probability Matrix</div>
+        <div id="markov-heatmap" class="markov-heatmap"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 4: ATTENTION MAPS
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-attention">
+    <div class="panel-header">
+      <h2 class="panel-title">Transformer Self-Attention Maps</h2>
+      <p class="panel-desc">GPT-2 has 12 layers × 12 heads of self-attention. Each head learns what to attend to — syntax, coreference, semantics. <em>Attention(Q,K,V) = softmax(QKᵀ/√dₖ)V</em>. Hot cells = strong attention flow.</p>
+    </div>
+
+    <div class="attn-layout">
+      <div class="attn-controls">
+        <label class="ctrl-label">Query:</label>
+        <input id="attn-input" class="ctrl-input" placeholder="e.g. how to learn machine learning" value="how to learn machine learning">
+        <button class="btn-primary" id="attn-run-btn">Extract Attention</button>
+
+        <label class="ctrl-label" style="margin-top:14px;">Layer (0–11):</label>
+        <input type="range" id="attn-layer-slider" min="0" max="11" value="5" class="slider">
+        <div class="slider-val">Layer <span id="attn-layer-val">5</span></div>
+
+        <label class="ctrl-label" style="margin-top:14px;">Head:</label>
+        <div class="head-btns" id="attn-head-btns">
+          <button class="head-btn active" data-head="avg">Avg</button>
+          <button class="head-btn" data-head="0">H0</button>
+          <button class="head-btn" data-head="1">H1</button>
+          <button class="head-btn" data-head="2">H2</button>
+          <button class="head-btn" data-head="3">H3</button>
+        </div>
+
+        <div class="info-card" style="margin-top:14px;">
+          <div class="info-row"><span class="info-key">Tokens</span><span class="info-val" id="attn-token-count">—</span></div>
+          <div class="info-row"><span class="info-key">Layers</span><span class="info-val">12</span></div>
+          <div class="info-row"><span class="info-key">Heads</span><span class="info-val">12</span></div>
+          <div class="info-row"><span class="info-key">d_model</span><span class="info-val">768</span></div>
+          <div class="info-row"><span class="info-key">d_head</span><span class="info-val">64</span></div>
+        </div>
+
+        <div class="complexity-box" style="margin-top:12px;">
+          <div class="complexity-title">📐 Attention Formula</div>
+          <div class="equation">Attn(Q,K,V) = softmax(QKᵀ/√dₖ)·V</div>
+          <div class="equation-note">Complexity: O(n²·d) per head</div>
+          <div class="equation" style="margin-top:6px;">MultiHead = Concat(head₁…headₙ)·Wᴼ</div>
+        </div>
+      </div>
+
+      <div class="attn-viz-area">
+        <div id="attn-loading" class="viz-loading hidden">⟳ Extracting attention weights…</div>
+        <div class="viz-title">Attention Heatmap</div>
+        <div class="canvas-wrap">
+          <canvas id="attn-canvas"></canvas>
+        </div>
+        <div class="viz-title" style="margin-top:20px;">All-Heads Summary (Layer <span id="attn-layer-label">5</span>)</div>
+        <div id="attn-heads-grid" class="attn-heads-grid"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 5: LSTM INTERNALS
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-lstm">
+    <div class="panel-header">
+      <h2 class="panel-title">LSTM Cell — Internal Architecture</h2>
+      <p class="panel-desc">Long Short-Term Memory networks solve the vanishing gradient problem using gated memory cells. Three gates control what to remember, forget, and output. Below are the live gate activations for your query — computed with actual LSTM mathematics.</p>
+    </div>
+
+    <div class="lstm-layout">
+      <div class="lstm-controls">
+        <label class="ctrl-label">Query:</label>
+        <input id="lstm-input" class="ctrl-input" placeholder="e.g. how to learn" value="how to learn machine">
+        <button class="btn-primary" id="lstm-run-btn">Compute Gates</button>
+
+        <label class="ctrl-label" style="margin-top:14px;">Time step:</label>
+        <div id="lstm-step-nav" class="step-nav">
+          <button id="lstm-prev" class="step-btn">◀</button>
+          <span id="lstm-step-label" class="step-label">t = 0 '<span id="lstm-char-label">?</span>'</span>
+          <button id="lstm-next" class="step-btn">▶</button>
+        </div>
+
+        <div class="gate-bars" id="lstm-gate-bars">
+          <div class="gate-bar-row">
+            <span class="gate-name forget">Forget Gate fₜ</span>
+            <div class="gate-track"><div class="gate-fill forget-fill" id="g-forget" style="width:50%"></div></div>
+            <span class="gate-pct" id="g-forget-val">0.50</span>
+          </div>
+          <div class="gate-bar-row">
+            <span class="gate-name input">Input Gate iₜ</span>
+            <div class="gate-track"><div class="gate-fill input-fill" id="g-input" style="width:30%"></div></div>
+            <span class="gate-pct" id="g-input-val">0.30</span>
+          </div>
+          <div class="gate-bar-row">
+            <span class="gate-name cell">Cell Gate g̃ₜ</span>
+            <div class="gate-track"><div class="gate-fill cell-fill" id="g-cell" style="width:60%"></div></div>
+            <span class="gate-pct" id="g-cell-val">0.60</span>
+          </div>
+          <div class="gate-bar-row">
+            <span class="gate-name output">Output Gate oₜ</span>
+            <div class="gate-track"><div class="gate-fill output-fill" id="g-output" style="width:45%"></div></div>
+            <span class="gate-pct" id="g-output-val">0.45</span>
+          </div>
+          <div class="gate-bar-row">
+            <span class="gate-name hidden">‖Cell State‖</span>
+            <div class="gate-track"><div class="gate-fill hidden-fill" id="g-cell-norm" style="width:40%"></div></div>
+            <span class="gate-pct" id="g-cell-norm-val">—</span>
+          </div>
+        </div>
+
+        <div class="complexity-box" style="margin-top:14px;">
+          <div class="complexity-title">📐 LSTM Equations</div>
+          <div class="equation small">fₜ = σ(Wf·[hₜ₋₁, xₜ] + bf)</div>
+          <div class="equation small">iₜ = σ(Wi·[hₜ₋₁, xₜ] + bi)</div>
+          <div class="equation small">g̃ₜ = tanh(Wg·[hₜ₋₁, xₜ] + bg)</div>
+          <div class="equation small">cₜ = fₜ⊙cₜ₋₁ + iₜ⊙g̃ₜ</div>
+          <div class="equation small">oₜ = σ(Wo·[hₜ₋₁, xₜ] + bo)</div>
+          <div class="equation small">hₜ = oₜ⊙tanh(cₜ)</div>
+        </div>
+      </div>
+
+      <div class="lstm-viz-area">
+        <div class="viz-title">LSTM Cell Architecture</div>
+        <svg id="lstm-svg" width="100%" height="340"></svg>
+        <div class="viz-title" style="margin-top:20px;">Gate Activations Over Time</div>
+        <canvas id="lstm-timeline" height="150"></canvas>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 6: 3D EMBEDDINGS
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-embeddings">
+    <div class="panel-header">
+      <h2 class="panel-title">Word Embeddings in 3D Space</h2>
+      <p class="panel-desc">GPT-2's 768-dimensional token embedding matrix projected to 3D using PCA. Semantically similar words cluster together — see "machine", "learning", "neural" group apart from "career", "job", "engineer". Drag to orbit.</p>
+    </div>
+
+    <div class="embed-layout">
+      <div class="embed-controls">
+        <label class="ctrl-label">Custom words (comma-sep):</label>
+        <input id="embed-words-input" class="ctrl-input" placeholder="learn,machine,data,career…">
+        <button class="btn-primary" id="embed-load-btn">Project Embeddings</button>
+
+        <div class="info-card" style="margin-top:14px;">
+          <div class="info-row"><span class="info-key">Embedding dim</span><span class="info-val">768</span></div>
+          <div class="info-row"><span class="info-key">PCA variance PC1</span><span class="info-val" id="embed-pc1">—</span></div>
+          <div class="info-row"><span class="info-key">PCA variance PC2</span><span class="info-val" id="embed-pc2">—</span></div>
+          <div class="info-row"><span class="info-key">PCA variance PC3</span><span class="info-val" id="embed-pc3">—</span></div>
+          <div class="info-row"><span class="info-key">Total explained</span><span class="info-val" id="embed-total-var">—</span></div>
+          <div class="info-row"><span class="info-key">Clusters (k-means)</span><span class="info-val" id="embed-clusters">—</span></div>
+        </div>
+
+        <div class="legend-area" id="embed-legend"></div>
+
+        <div class="complexity-box" style="margin-top:12px;">
+          <div class="complexity-title">📐 PCA Projection</div>
+          <div class="equation small">z = Wᵀ(x − μ)</div>
+          <div class="equation-note">W = top-3 eigenvectors of covariance matrix</div>
+          <div class="equation small" style="margin-top:6px;">sim(u,v) = u·v / (‖u‖‖v‖)</div>
+          <div class="equation-note">Cosine similarity in embedding space</div>
+        </div>
+
+        <div class="nearest-area" id="embed-nearest">
+          <div class="traverse-label">Click a word to see nearest neighbors</div>
+        </div>
+      </div>
+
+      <div class="embed-viz-area">
+        <div class="viz-title">3D Word Vector Space (Three.js)</div>
+        <div id="embed-3d-container" style="width:100%;height:480px;border-radius:8px;overflow:hidden;"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 7: GRADIENT DESCENT
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-gradient">
+    <div class="panel-header">
+      <h2 class="panel-title">Gradient Descent on Loss Surface</h2>
+      <p class="panel-desc">Gradient descent minimizes the loss by moving in the direction of the negative gradient: <em>θ ← θ − η·∇L(θ)</em>. The 3D surface below is the Rosenbrock function — a classic optimization challenge. Watch the trajectory converge to the global minimum.</p>
+    </div>
+
+    <div class="grad-layout">
+      <div class="grad-controls">
+        <button class="btn-primary" id="grad-play-btn">▶ Play Animation</button>
+        <button class="btn-secondary" id="grad-reset-btn">↺ Reset</button>
+
+        <div class="info-card" style="margin-top:14px;">
+          <div class="info-row"><span class="info-key">Current step</span><span class="info-val" id="grad-step">0</span></div>
+          <div class="info-row"><span class="info-key">Current loss</span><span class="info-val" id="grad-loss">—</span></div>
+          <div class="info-row"><span class="info-key">w₁</span><span class="info-val" id="grad-w1">−1.5</span></div>
+          <div class="info-row"><span class="info-key">w₂</span><span class="info-val" id="grad-w2">2.5</span></div>
+          <div class="info-row"><span class="info-key">Learning rate η</span><span class="info-val">0.025</span></div>
+        </div>
+
+        <div class="complexity-box" style="margin-top:12px;">
+          <div class="complexity-title">📐 Update Rule</div>
+          <div class="equation small">θₜ₊₁ = θₜ − η · ∇L(θₜ)</div>
+          <div class="equation-note">Vanilla SGD update</div>
+          <div class="equation small" style="margin-top:6px;">L(w₁,w₂) = (1−w₁)² + 2(w₂−w₁²)²</div>
+          <div class="equation-note">Rosenbrock banana function</div>
+          <div class="equation small" style="margin-top:6px;">∇w₁L = −2(1−w₁) − 8w₁(w₂−w₁²)</div>
+          <div class="equation small">∇w₂L = 4(w₂−w₁²)</div>
+        </div>
+
+        <div class="viz-title" style="margin-top:18px;">Loss vs Step</div>
+        <canvas id="grad-loss-chart" height="140"></canvas>
+      </div>
+
+      <div class="grad-viz-area">
+        <div class="viz-title">3D Loss Surface (Three.js)</div>
+        <div id="grad-3d-container" style="width:100%;height:500px;border-radius:8px;overflow:hidden;"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 8: DECISION TREES / GBDT
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-gbdt">
+    <div class="panel-header">
+      <h2 class="panel-title">Gradient-Boosted Decision Trees (GBDT)</h2>
+      <p class="panel-desc">GBDT builds trees sequentially, each fitting the residual of the previous: <em>Fₘ(x) = Fₘ₋₁(x) + η·hₘ(x)</em>. Used by Bing and Yandex for query ranking. Below you see Tree #1 of the ensemble and feature importances for your query.</p>
+    </div>
+
+    <div class="gbdt-layout">
+      <div class="gbdt-controls">
+        <label class="ctrl-label">Query to rank:</label>
+        <input id="gbdt-input" class="ctrl-input" placeholder="e.g. how to learn python" value="how to learn python">
+        <button class="btn-primary" id="gbdt-run-btn">Explain Ranking</button>
+
+        <div class="info-card" style="margin-top:14px;">
+          <div class="info-row"><span class="info-key">Popularity score</span><span class="info-val" id="gbdt-score">—</span></div>
+          <div class="info-row"><span class="info-key">n_estimators</span><span class="info-val">50</span></div>
+          <div class="info-row"><span class="info-key">max_depth</span><span class="info-val">3</span></div>
+          <div class="info-row"><span class="info-key">learning_rate</span><span class="info-val">0.1</span></div>
+          <div class="info-row"><span class="info-key">subsample</span><span class="info-val">0.8</span></div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="traverse-label">Feature contributions:</div>
+          <div id="gbdt-features" class="gbdt-features"></div>
+        </div>
+
+        <div class="complexity-box" style="margin-top:12px;">
+          <div class="complexity-title">📐 Boosting Formula</div>
+          <div class="equation small">F₀(x) = argmin Σ L(yᵢ, γ)</div>
+          <div class="equation small">rᵢₘ = −[∂L(yᵢ,F(xᵢ))/∂F(xᵢ)]</div>
+          <div class="equation small">Fₘ(x) = Fₘ₋₁(x) + η·hₘ(x)</div>
+          <div class="equation-note">Additive tree ensemble</div>
+        </div>
+      </div>
+
+      <div class="gbdt-viz-area">
+        <div class="two-col-viz">
+          <div>
+            <div class="viz-title">Decision Tree #1 (D3.js)</div>
+            <svg id="gbdt-tree-svg" width="100%" height="380"></svg>
+          </div>
+          <div>
+            <div class="viz-title">Feature Importance</div>
+            <canvas id="gbdt-importance-chart" height="200"></canvas>
+            <div class="viz-title" style="margin-top:20px;">Boosting Loss Curve</div>
+            <canvas id="gbdt-boost-chart" height="160"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 9: USER HISTORY
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-history">
+    <div class="panel-header">
+      <h2 class="panel-title">User Session & Query History</h2>
+      <p class="panel-desc">Modern search engines personalize results using your search history, click patterns, and demographics. This panel tracks your current session — the data that would feed a real personalization model.</p>
+    </div>
+
+    <div class="history-layout">
+      <div class="history-left">
+        <div class="info-card">
+          <div class="info-row"><span class="info-key">Session queries</span><span class="info-val" id="hist-total">0</span></div>
+          <div class="info-row"><span class="info-key">Unique words</span><span class="info-val" id="hist-unique">0</span></div>
+          <div class="info-row"><span class="info-key">Avg query length</span><span class="info-val" id="hist-avg-len">—</span></div>
+          <div class="info-row"><span class="info-key">Session duration</span><span class="info-val" id="hist-duration">—</span></div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="traverse-label">Top keywords used:</div>
+          <div id="hist-wordcloud" class="wordcloud-wrap"></div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="traverse-label">Intent distribution:</div>
+          <canvas id="hist-intent-chart" height="180"></canvas>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="traverse-label">Query length distribution:</div>
+          <canvas id="hist-length-chart" height="140"></canvas>
+        </div>
+      </div>
+
+      <div class="history-right">
+        <div class="viz-title">Recent Queries Timeline</div>
+        <div id="hist-timeline" class="hist-timeline"></div>
+
+        <div class="viz-title" style="margin-top:20px;">Query Activity Over Time</div>
+        <canvas id="hist-timing-chart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────────────────────────────────────────────────
+       TAB 10: METRICS DASHBOARD
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="tab-metrics">
+    <div class="panel-header">
+      <h2 class="panel-title">Training Metrics Dashboard</h2>
+      <p class="panel-desc">TensorBoard-style training analytics. If the model hasn't been trained yet, demo curves are shown. Run <code>python model/train.py</code> to generate real metrics from fine-tuning GPT-2 on the query corpus.</p>
+    </div>
+
+    <div class="metrics-grid-4">
+      <div class="metric-card">
+        <div class="metric-icon">📉</div>
+        <div class="metric-val" id="met-final-loss">—</div>
+        <div class="metric-label">Final Loss</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">🔢</div>
+        <div class="metric-val" id="met-epochs">—</div>
+        <div class="metric-label">Epochs</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">📦</div>
+        <div class="metric-val" id="met-batch">—</div>
+        <div class="metric-label">Batch Size</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">🎚️</div>
+        <div class="metric-val" id="met-lr">—</div>
+        <div class="metric-label">Learning Rate</div>
+      </div>
+    </div>
+
+    <div class="metrics-charts-row">
+      <div class="metrics-chart-block">
+        <div class="viz-title">Training Loss Curve</div>
+        <canvas id="met-loss-chart" height="200"></canvas>
+      </div>
+      <div class="metrics-chart-block">
+        <div class="viz-title">Perplexity (exp(loss))</div>
+        <canvas id="met-perplexity-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="arch-section">
+      <div class="viz-title">GPT-2 Architecture Overview</div>
+      <div class="arch-grid">
+        <div class="arch-card">
+          <div class="arch-icon">📏</div>
+          <div class="arch-name">d_model</div>
+          <div class="arch-val">768</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">🧱</div>
+          <div class="arch-name">Layers</div>
+          <div class="arch-val">12</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">👁️</div>
+          <div class="arch-name">Attn Heads</div>
+          <div class="arch-val">12</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">🧮</div>
+          <div class="arch-name">FFN dim</div>
+          <div class="arch-val">3072</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">📖</div>
+          <div class="arch-name">Vocab size</div>
+          <div class="arch-val">50,257</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">🔢</div>
+          <div class="arch-name">Parameters</div>
+          <div class="arch-val">124M</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">📝</div>
+          <div class="arch-name">Max context</div>
+          <div class="arch-val">1024 tokens</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-icon">⚡</div>
+          <div class="arch-name">Objective</div>
+          <div class="arch-val">Causal LM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Scripts (order matters for dependencies) -->
+<script src="/static/viz_trie.js"></script>
+<script src="/static/viz_markov.js"></script>
+<script src="/static/viz_attention.js"></script>
+<script src="/static/viz_lstm.js"></script>
+<script src="/static/viz_embeddings.js"></script>
+<script src="/static/viz_gradient.js"></script>
+<script src="/static/viz_gbdt.js"></script>
+<script src="/static/viz_history.js"></script>
+<script src="/static/viz_metrics.js"></script>
+<script src="/static/main.js"></script>
 </body>
 </html>
